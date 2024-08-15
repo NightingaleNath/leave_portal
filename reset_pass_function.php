@@ -2,7 +2,7 @@
 include('includes/config.php');
 include('includes/session.php');
 
-if (!isset($_SESSION['semail'])) {
+if (!isset($_SESSION['email'])) {
     header('Location: index.php');
     exit();
 }
@@ -10,7 +10,7 @@ if (!isset($_SESSION['semail'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] === 'reset_password') {
     $newPassword = $_POST['new_password'];
     $confirmPassword = $_POST['confirm_password'];
-    $email = $_SESSION['semail'];
+    $email = $_SESSION['email'];
 
     if (empty($newPassword) || empty($confirmPassword)) {
         $response = array('status' => 'error', 'message' => 'Please fill in all fields');
