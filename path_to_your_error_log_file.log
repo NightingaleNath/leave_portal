@@ -1,0 +1,13 @@
+[05-Aug-2024 23:08:00 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'email_id' in 'where clause' in C:\xampp\htdocs\leave_portal\login.php:21
+Stack trace:
+#0 C:\xampp\htdocs\leave_portal\login.php(21): mysqli_query(Object(mysqli), 'SELECT * FROM t...')
+#1 C:\xampp\htdocs\leave_portal\login.php(83): login('codehacker768@g...', '44ffe44097bbce0...')
+#2 {main}
+  thrown in C:\xampp\htdocs\leave_portal\login.php on line 21
+[05-Aug-2024 23:10:00 Europe/Berlin] PHP Fatal error:  Uncaught mysqli_sql_exception: Unknown column 'email_id' in 'where clause' in C:\xampp\htdocs\leave_portal\login.php:21
+Stack trace:
+#0 C:\xampp\htdocs\leave_portal\login.php(21): mysqli_query(Object(mysqli), 'SELECT * FROM t...')
+#1 C:\xampp\htdocs\leave_portal\login.php(82): login('codehacker768@g...', '44ffe44097bbce0...')
+#2 {main}
+  thrown in C:\xampp\htdocs\leave_portal\login.php on line 21
+[05-Aug-2024 23:12:00 Europe/Berlin] Exception: Unknown column 'email_id' in 'where clause'

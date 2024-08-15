@@ -1,4 +1,18 @@
 <?php include('../includes/header.php')?>
+<?php
+// Check if the user is logged in
+if (!isset($_SESSION['slogin']) || !isset($_SESSION['srole'])) {
+    header('Location: ../index.php');
+    exit();
+}
+
+// Check if the user has the role of Manager or Admin
+$userRole = $_SESSION['srole'];
+if ($userRole !== 'Manager' && $userRole !== 'Admin') {
+    header('Location: ../index.php');
+    exit();
+}
+?>
 
 <body>
 <style>

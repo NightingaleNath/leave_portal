@@ -10,11 +10,10 @@ if (!isset($_SESSION['slogin']) || !isset($_SESSION['srole'])) {
 
 // Check if the user has the role of Manager or Admin
 $userRole = $_SESSION['srole'];
-if ($userRole !== 'Manager' && $userRole !== 'Admin') {
+if ($userRole !== 'Staff') {
     header('Location: ../index.php');
     exit();
 }
-
 
 // Check if the department filter is set
 $leaveStatusFilter = isset($_GET['leave_status']) ? $_GET['leave_status'] : 'Show all';
@@ -153,7 +152,7 @@ foreach ($leaveData as $leave) {
 
           <div class="pcoded-main-container">
               <div class="pcoded-wrapper">
-                  <?php $page_name = "leave_request"; ?>
+                  <?php $page_name = "supervisee_leave_request"; ?>
                   <?php include('../includes/sidebar.php')?>
                   <div class="pcoded-content">
                       <div class="pcoded-inner-content">
@@ -166,8 +165,8 @@ foreach ($leaveData as $leave) {
                                           <div class="col-lg-8">
                                               <div class="page-header-title">
                                                   <div class="d-inline">
-                                                      <h4>Leave Portal - All Leaves</h4>
-                                                      <span>Verify and respond to leave request</span>
+                                                      <h4>Leave Portal - Supervisee Leave Request</h4>
+                                                      <span>Verify and respond to the leave requests</span>
                                                   </div>
                                               </div>
                                           </div>
@@ -214,7 +213,7 @@ foreach ($leaveData as $leave) {
                                             <!-- Left column start -->
                                             <div id="leaveMain" class="col-lg-9">
                                                 <div id="leaveContainer" class="job-card card-columns">
-                                                    <!-- Populate it from leave_functions.php -->
+                                                    <!-- Populate it from ../admin/leave_functions.php -->
                                                 </div>
                                             </div>
                                             <!-- Left column end -->
@@ -224,9 +223,6 @@ foreach ($leaveData as $leave) {
                                                 <div class="card job-right-header">
                                                     <div class="card-header">
                                                         <h5>Leave Status Information</h5>
-                                                        <!-- <div class="card-header-right">
-                                                            <label class="label label-danger">Add</label>
-                                                        </div> -->
                                                     </div>
                                                     <div class="card-block">
                                                         <form action="#">
@@ -244,7 +240,7 @@ foreach ($leaveData as $leave) {
                                                                                         <i class="cr-icon icofont icofont-ui-check txt-primary"></i>
                                                                                     </span>
                                                                                 </label>
-                                                                                <div> <a href="leave_request.php?leave_status='.$status.'">' . $leaveStatus . ' <span class="text-muted">(' . $count . ')</span> <a/></div>
+                                                                                <div> <a href="supervisee_leave_request.php?leave_status='.$status.'">' . $leaveStatus . ' <span class="text-muted">(' . $count . ')</span> <a/></div>
                                                                             </div>';
                                                                     }
                                                                 ?>
@@ -366,7 +362,7 @@ foreach ($leaveData as $leave) {
 
                     console.log('Data HERE: ' + JSON.stringify(data));
                     $.ajax({
-                        url: 'leave_functions.php',
+                        url: '../admin/leave_functions.php',
                         type: 'post',
                         data: data,
                         success: function(response) {
@@ -413,81 +409,6 @@ foreach ($leaveData as $leave) {
 
 <script type="text/javascript">
     $(document).ready(function() {
-        // Event listener for "Delete" buttons with class "delete-leave"
-        $(document).on('click', '.delete-leave', function(event) {
-            event.preventDefault();
-            const leaveId = $(this).data('id');
-            const leaveStatus = $(this).data('status');
-
-            console.log("LEAVE STATUS FOR DELETE HERE " + (leaveStatus == "Pending") +leaveStatus);
-
-            if (leaveStatus !== "Pending" && leaveStatus !== "Cancelled") {
-                Swal.fire({
-                    icon: 'warning',
-                    text: 'Please you are only allowed to delete leave request that are pending or cancelled.',
-                    confirmButtonColor: '#ffc107',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-            (async () => {
-                const { value: formValues } = await Swal.fire({
-                    title: 'Are you sure?',
-                    text: "You won't be able to revert this!",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, delete it!'
-                });
-
-                if (formValues) {
-                    var data = {
-                        id: leaveId,
-                        action: "delete-leave"
-                    };
-
-                    $.ajax({
-                        url: 'leave_functions.php',
-                        type: 'post',
-                        data: data,
-                        success: function(response) {
-                            const responseObject = JSON.parse(response);
-                            if (response && responseObject.status === 'success') {
-                                // Show success message
-                                Swal.fire({
-                                    icon: 'success',
-                                    html: responseObject.message,
-                                    confirmButtonColor: '#01a9ac',
-                                    confirmButtonText: 'OK'
-                                }).then((result) => {
-                                    if (result.isConfirmed) {
-                                        location.reload();
-                                    }
-                                });
-                            } else {
-                                Swal.fire({
-                                    icon: 'error',
-                                    text: responseObject.message,
-                                    confirmButtonColor: '#eb3422',
-                                    confirmButtonText: 'OK'
-                                });
-                            }
-                        },
-                        error: function(xhr, status, error) {
-                            console.log("AJAX error: " + error);
-                            Swal.fire('Error!', 'Failed to delete leave request.', 'error');
-                        }
-                    });
-                }
-            })();
-        });
-    });
-</script>
-
-<script type="text/javascript">
-    $(document).ready(function() {
         // Retrieve the initial department filter value
         var selectedStatus = '<?php echo $selectedLeaveStatusName; ?>';
         // Function to fetch and display the filtered staff
@@ -497,7 +418,7 @@ foreach ($leaveData as $leave) {
             var leaveStatusFilter = (selectedStatus === 'Show all') ? '' : selectedStatus; // Get the selectedStatus filter value
             // Make an AJAX request to fetch the filtered staff
             $.ajax({
-                url: 'leave_functions.php', // Replace with the actual PHP script that fetches the staff from the database
+                url: '../admin/leave_functions.php', // Replace with the actual PHP script that fetches the staff from the database
                 type: 'POST',
                 data: { searchQuery: searchQuery, leaveStatusFilter: leaveStatusFilter },
                 

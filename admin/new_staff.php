@@ -1,4 +1,19 @@
 <?php include('../includes/header.php')?>
+<?php
+// Check if the user is logged in
+if (!isset($_SESSION['slogin']) || !isset($_SESSION['srole'])) {
+    header('Location: ../index.php');
+    exit();
+}
+
+// Check if the user has the role of Manager or Admin
+$userRole = $_SESSION['srole'];
+if ($userRole !== 'Manager' && $userRole !== 'Admin') {
+    header('Location: ../index.php');
+    exit();
+}
+?>
+
 
 <body>
 <!-- Pre-loader start -->
@@ -178,8 +193,11 @@
                                                                     <div class="col-sm-12">
                                                                         <label for="userName-2" class="block">Staff ID *</label>
                                                                     </div>
-                                                                    <div class="col-sm-12">
-                                                                        <input type="text" id="staff_id" name="staff_id" autocomplete="off" class="form-control" placeholder="" value="<?php echo isset($row['staff_id']) ? $row['staff_id'] : ''; ?>">
+                                                                    <div class="col-sm-10">
+                                                                        <input type="text" id="staff_id" name="staff_id" readonly autocomplete="off" class="form-control" placeholder="" value="<?php echo isset($row['staff_id']) ? $row['staff_id'] : ''; ?>">
+                                                                    </div>
+                                                                    <div class="col-sm-2">
+                                                                        <i id="generate" class="fa fa-cog btn btn-primary" style="cursor: pointer; padding: 10px; border-radius: 5px;" aria-hidden="true" title="Generate ID"></i>
                                                                     </div>
                                                                 </div>
                                                                 <div class="form-group row">
@@ -190,27 +208,27 @@
                                                                         <input type="email" id="email" name="email" autocomplete="off" class="form-control" placeholder="" value="<?php echo isset($row['email_id']) ? $row['email_id'] : ''; ?>">
                                                                     </div>
                                                                 </div>
-                                                                
-                                                                <div class="form-group row">
-                                                                    <div class="col-sm-12">
-                                                                        <label for="userName-2" class="block">Password *</label>
+                                                                <?php if(!isset($row) || empty($row)): ?>
+                                                                    <div class="form-group row">
+                                                                        <div class="col-sm-12">
+                                                                            <label for="userName-2" class="block">Password *</label>
+                                                                        </div>
+                                                                        <div class="col-sm-12">
+                                                                            <input type="password" placeholder="**********" id="password" name="password" autocomplete="off" class="form-control">
+                                                                            <?php if(isset($row) && !empty($row)): ?>
+                                                                                <label for="userName" class="block" style="font-style: italic; font-size: 12px;">Leave this blank if you don't want to change password</label>
+                                                                            <?php endif; ?>
+                                                                        </div>
                                                                     </div>
-                                                                    <div class="col-sm-12">
-                                                                        <input type="password" placeholder="**********" id="password" name="password" autocomplete="off" class="form-control">
-                                                                        <?php if(isset($row) && !empty($row)): ?>
-                                                                            <label for="userName" class="block" style="font-style: italic; font-size: 12px;">Leave this blank if you don't want to change password</label>
-                                                                        <?php endif; ?>
+                                                                    <div class="form-group row">
+                                                                        <div class="col-sm-12">
+                                                                            <label for="userName-2" class="block">Confirm Password *</label>
+                                                                        </div>
+                                                                        <div class="col-sm-12">
+                                                                            <input type="password" placeholder="**********" id="c_password" name="c_password" autocomplete="off" class="form-control">
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                                <div class="form-group row">
-                                                                    <div class="col-sm-12">
-                                                                        <label for="userName-2" class="block">Confirm Password *</label>
-                                                                    </div>
-                                                                    <div class="col-sm-12">
-                                                                        <input type="password" placeholder="**********" id="c_password" name="c_password" autocomplete="off" class="form-control">
-                                                                    </div>
-                                                                </div>
-
+                                                                <?php endif; ?>               
                                                                 <h4 class="sub-title">Is Supervisor? *</h4>
                                                                 <div class="form-group row">
                                                                     <div class="col-sm-12">
@@ -598,6 +616,23 @@
                 });
             })()
         })
+    </script>
+
+    <script>
+        $(document).ready(function() {
+            $('#generate').on('click', function() {
+                $.ajax({
+                    url: 'generate_id.php',
+                    type: 'GET',
+                    success: function(response) {
+                        $('#staff_id').val(response);
+                    },
+                    error: function() {
+                        alert('Error generating ID');
+                    }
+                });
+            });
+        });
     </script>
  </body>
 

@@ -54,6 +54,9 @@
     <link rel="stylesheet" type="text/css" href="..\files\assets\pages\j-pro\css\font-awesome.min.css">
     <link rel="stylesheet" type="text/css" href="..\files\assets\pages\j-pro\css\j-pro-modern.css">
     
+    <!-- Date-time picker css -->
+    <link rel="stylesheet" type="text/css" href="..\files\assets\pages\advance-elements\css\bootstrap-datetimepicker.css">
+    
 </head>
 <?php include('config.php'); ?>
 <?php include('session.php');?>

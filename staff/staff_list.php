@@ -8,11 +8,10 @@ if (!isset($_SESSION['slogin']) || !isset($_SESSION['srole'])) {
 
 // Check if the user has the role of Manager or Admin
 $userRole = $_SESSION['srole'];
-if ($userRole !== 'Manager' && $userRole !== 'Admin') {
+if ($userRole !== 'Staff') {
     header('Location: ../index.php');
     exit();
 }
-
 
 // Check if the department filter is set
 $departmentFilter = isset($_GET['department']) ? $_GET['department'] : 'Show all';
@@ -184,67 +183,6 @@ mysqli_stmt_close($stmt);
 
         gtag('config', 'UA-23581568-13');
     </script>
-    <script type="text/javascript">
-        $(document).ready(function() {
-            // Event listener for "Delete" buttons with class "delete-staff"
-            $(document).on('click', '.delete-staff', function(event) {
-                event.preventDefault();
-                const staffId = $(this).data('id');
-
-                (async () => {
-                    const { value: formValues } = await Swal.fire({
-                        title: 'Are you sure?',
-                        text: "You won't be able to revert this!",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Yes, delete it!'
-                    });
-
-                    if (formValues) {
-                        var data = {
-                            id: staffId,
-                            action: "delete-staff"
-                        };
-
-                        $.ajax({
-                            url: 'staff_functions.php',
-                            type: 'post',
-                            data: data,
-                            success: function(response) {
-                                const responseObject = JSON.parse(response);
-                                if (response && responseObject.status === 'success') {
-                                    // Show success message
-                                    Swal.fire({
-                                        icon: 'success',
-                                        html: responseObject.message,
-                                        confirmButtonColor: '#01a9ac',
-                                        confirmButtonText: 'OK'
-                                    }).then((result) => {
-                                        if (result.isConfirmed) {
-                                            location.reload();
-                                        }
-                                    });
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        text: responseObject.message,
-                                        confirmButtonColor: '#eb3422',
-                                        confirmButtonText: 'OK'
-                                    });
-                                }
-                            },
-                            error: function(xhr, status, error) {
-                                console.log("AJAX error: " + error);
-                                Swal.fire('Error!', 'Failed to delete department.', 'error');
-                            }
-                        });
-                    }
-                })();
-            });
-        });
-    </script>
 
     <script type="text/javascript">
     $(document).ready(function() {
@@ -256,7 +194,7 @@ mysqli_stmt_close($stmt);
             var departmentFilter = (selectedDepartment === 'Show all') ? '' : selectedDepartment; // Get the department filter value
             // Make an AJAX request to fetch the filtered staff
             $.ajax({
-                url: 'staff_functions.php', // Replace with the actual PHP script that fetches the staff from the database
+                url: 'staff_list_functions.php', // Replace with the actual PHP script that fetches the staff from the database
                 type: 'POST',
                 data: { searchQuery: searchQuery, departmentFilter: departmentFilter },
                 success: function(response) {

@@ -9,11 +9,10 @@ if (!isset($_SESSION['slogin']) || !isset($_SESSION['srole'])) {
 
 // Check if the user has the role of Manager or Admin
 $userRole = $_SESSION['srole'];
-if ($userRole !== 'Manager' && $userRole !== 'Admin') {
+if ($userRole !== 'Staff') {
     header('Location: ../index.php');
     exit();
 }
-
 
 $totalStaff = 0;
 
@@ -173,10 +172,6 @@ while ($departmentRow = $departmentResult->fetch_assoc()) {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class=" col-lg-4">
-                                            <button type="button" class="btn btn-primary waves-effect waves-light f-right d-inline-block md-trigger" data-modal="modal-13"> <i class="icofont icofont-plus m-r-5"></i> New Department
-                                            </button>
-                                        </div>
                                     </div>
                                 </div>
                                 <!-- Page-header end -->
@@ -193,8 +188,6 @@ while ($departmentRow = $departmentResult->fetch_assoc()) {
                                                             <button class="btn btn-primary btn-mini dropdown-toggle waves-effect waves-light" type="button" id="dropdown1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><?= $department['name'] ?></button>
                                                             <div class="dropdown-menu" aria-labelledby="dropdown1" data-dropdown-in="fadeIn" data-dropdown-out="fadeOut">
                                                                 <a class="dropdown-item waves-light waves-effect" href="staff_list.php?department=<?= urlencode($department['name']) ?>"><span class="point-marker bg-danger"></span>View Staff</a>
-                                                                <a class="dropdown-item waves-light waves-effect edit-btn md-trigger" href="#" data-modal="modal-13" data-original-title="Edit" data-id="<?= $department['id'] ?>" data-name="<?= $department['name'] ?>" data-description="<?= $department['desc'] ?>"><span class="point-marker bg-warning"></span>Edit</a>
-                                                                <a class="dropdown-item waves-light waves-effect delete-btn" href="#" data-original-title="Delete" data-id="<?= $department['id'] ?>"><span class="point-marker bg-success"></span>Delete</a>
                                                             </div>
                                                             <!-- end of dropdown menu -->
                                                         </div>
@@ -243,7 +236,7 @@ while ($departmentRow = $departmentResult->fetch_assoc()) {
                                                             while ($staffRow = $staffResult->fetch_assoc()) {
                                                                 $staffImage = $staffRow['image_path'];
                                                                 $staffName = $staffRow['first_name'] . ' ' . $staffRow['last_name'];
-                                                                echo "<a href='#!'><img src='$staffImage' data-toggle='tooltip' title='$staffName' alt='' class='m-l-5 '></a>";
+                                                                echo '<a href="staff_detailed.php?id=' . $staffRow['emp_id'] . '&view=2"><img src="' . $staffImage . '" data-toggle="tooltip" title="' . $staffName . '" alt="" class="m-l-5"></a>';
                                                             }
                                                             ?>
                                                         </div>
@@ -263,30 +256,6 @@ while ($departmentRow = $departmentResult->fetch_assoc()) {
                                         <?php endforeach; ?>
                                         <!-- project  end -->
                                         </div>
-                                        <!-- Add Contact Start Model start-->
-                                           <div class="md-modal md-effect-13 addcontact" id="modal-13">
-                                                <div class="md-content" style="max-width: 400px;">
-                                                    <h3 class="f-26">Add Department</h3>
-                                                    <div >
-                                                         <input hidden type="text" class="form-control department-id" name="department-id">
-                                                        <div class="input-group">
-                                                            <span class="input-group-addon"><i class="icofont icofont-bank-alt"></i></span>
-                                                            <input type="text" class="form-control dname" name="dname" placeholder="Department Name">
-                                                        </div>
-                                                        <div class="input-group">
-                                                            <textarea class="form-control description" name="description" placeholder="Description here" spellcheck="false" rows="5"></textarea>
-                                                        </div>
-                                                        
-                                                        <div class="text-center">
-                                                            <button type="submit"  id="save-btn" class="btn btn-primary waves-effect m-r-20 f-w-600 d-inline-block save_btn">Save</button>
-                                                            <button type="submit" id="update-btn" class="btn btn-primary waves-effect m-r-20 f-w-600 update_btn" style="display:none;">Update</button>
-                                                            <button type="button" class="btn btn-primary waves-effect m-r-20 f-w-600 md-close d-inline-block close_btn">Close</button>
-                                                        </div>
-                                                    </div>
-                                               </div>
-                                          </div>
-                                        <div class="md-overlay"></div>
-                                        <!-- Add Contact Ends Model end-->
                                     </div>
                                     <!-- Page body end -->
                                 </div>
@@ -310,193 +279,6 @@ while ($departmentRow = $departmentResult->fetch_assoc()) {
         gtag('js', new Date());
 
         gtag('config', 'UA-23581568-13');
-    </script>
-    <script type="text/javascript">
-        $('#save-btn').click(function(event){
-            event.preventDefault(); // prevent the default form submission
-            (async () => {
-                var data = {
-                    dname: $('.dname').val(),
-                    description: $('.description').val(), 
-                    action: "save",
-                };
-                if (data.dname.trim() === '' || data.description.trim() === '') {
-                    Swal.fire({
-                        icon: 'warning',
-                        text: 'Please all fieds are required. Kindly fill all',
-                        confirmButtonColor: '#ffc107',
-                        confirmButtonText: 'OK'
-                    });
-                    return;
-                }
-                $.ajax({
-                    url: 'department_functions.php',
-                    type: 'post',
-                    data: data,
-                    success:function(response){
-                        response = JSON.parse(response);
-                        if (response.status == 'success') {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Inserted Successfully',
-                                html:
-                                'Name : ' + data['dname'],
-                                confirmButtonColor: '#01a9ac',
-                                confirmButtonText: 'OK'
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    $('.md-close').trigger('click'); // close the modal form
-                                    location.reload();
-                                }
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                text: response.message,
-                                confirmButtonColor: '#eb3422',
-                                confirmButtonText: 'OK'
-                            });
-                        }
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
-                    }
-                });
-            })()
-        })
-    </script>
-    <script type="text/javascript">
-       // Get the edit button and listen for click events
-        $('.edit-btn').click(function() {
-            // Get the values of the data attributes from the clicked edit button
-            var id = $(this).data('id');
-            var name = $(this).data('name');
-            var description = $(this).data('description');
-            
-            // Set the values of the input fields in the modal form
-            $('#modal-13 .department-id').val(id);
-            $('#modal-13 .dname').val(name);
-            $('#modal-13 .description').val(description);
-            
-            // Show the modal form
-            $('.md-modal[data-modal="modal-13"]').addClass('md-show');
-
-            $('#save-btn').removeClass('d-inline-block').hide();
-            $('#update-btn').addClass('d-inline-block').show();
-
-        });
-
-        $('#update-btn').click(function(event){
-            event.preventDefault(); // prevent the default form submission
-            (async () => {
-                var data = {
-                    id: $('.department-id').val(),
-                    dname: $('.dname').val(),
-                    description: $('.description').val(),
-                    action: "update",
-                };
-                if (data.dname.trim() === '' || data.description.trim() === '') {
-                    Swal.fire({
-                        icon: 'warning',
-                        text: 'Please all fieds are required. Kindly fill all',
-                        confirmButtonColor: '#ffc107',
-                        confirmButtonText: 'OK'
-                    });
-                    return;
-                }
-                $.ajax({
-                    url: 'department_functions.php',
-                    type: 'post',
-                    data: data,
-                    success:function(response){
-                        response = JSON.parse(response);
-                        if (response.status == 'success') {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Updated Successfully',
-                                html:
-                                'Name : ' + data['dname'],
-                                confirmButtonColor: '#01a9ac',
-                                confirmButtonText: 'OK'
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    $('.md-close').trigger('click'); // close the modal form
-                                    location.reload();
-                                }
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                text: response.message,
-                                confirmButtonColor: '#eb3422',
-                                confirmButtonText: 'OK'
-                            });
-                        }
-                    },
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
-                    }
-                });
-            })()
-        })
-    </script>
-    <script type="text/javascript">
-        $('.delete-btn').click(function(){
-        (async () => {
-            const { value: formValues } = await Swal.fire({
-                title: 'Are you sure?',
-                text: "You won't be able to revert this!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, delete it!'
-            })
-
-            if (formValues) {
-            var data = {
-                id: $(this).data("id"),
-                action: "delete"
-            };
-
-            $.ajax({
-                url: 'department_functions.php',
-                type: 'post',
-                data: data,
-                success: function(response) {
-                    const responseObject = JSON.parse(response);
-                    console.log(`RESPONSE HERE: ${responseObject.status}`);
-                    if (response && responseObject.status === 'success') {
-                        // Show success message
-                        Swal.fire(
-                            'Deleted!',
-                            'Department has been deleted.',
-                            'success'
-                        ).then((result) => {
-                                if (result.isConfirmed) {
-                                   
-                                    location.reload();
-                                }
-                        });
-                        
-                    } else {
-                        // Show error message
-                        Swal.fire(
-                            'Error!',
-                            'Failed to delete department.',
-                            'error'
-                        );
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.log("AJAX error: " + error);
-                    Swal.fire('Error!', 'Failed to delete department.', 'error');
-                }
-
-            });
-          }
-        })()
-    })
     </script>
 
 </body>

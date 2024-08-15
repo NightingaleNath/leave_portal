@@ -34,6 +34,15 @@
 
 </head>
 
+<?php
+session_start();
+
+// Destroy all session variables
+session_unset();
+session_destroy();
+
+?>
+
 <body class="fix-menu">
     <!-- Pre-loader start -->
     <?php include('includes/loader.php')?>
@@ -51,7 +60,7 @@
                                 <div class="card-block">
                                     <div class="row m-b-20">
                                         <div class="col-md-12">
-                                            <h3 class="text-center">Leave Portal</h3>
+                                            <h3 class="text-center">Leave Management Portal</h3>
                                         </div>
                                     </div>
                                     <div class="form-group form-primary">
@@ -64,13 +73,6 @@
                                     </div>
                                     <div class="row m-t-25 text-left">
                                         <div class="col-12">
-                                            <div class="checkbox-fade fade-in-primary d-">
-                                                <label>
-                                                    <input type="checkbox" value="">
-                                                    <span class="cr"><i class="cr-icon icofont icofont-ui-check txt-primary"></i></span>
-                                                    <span class="text-inverse">Remember me</span>
-                                                </label>
-                                            </div>
                                             <div class="forgot-phone text-right f-right">
                                                 <a href="auth-reset-password.htm" class="text-right f-w-600"> Forgot Password?</a>
                                             </div>
@@ -122,32 +124,11 @@
 
   gtag('config', 'UA-23581568-13');
 </script>
-<!-- <script>
-  $('#submit').click(function() {
-    $('#login-form').submit();
-  });
-
-  $('#login-form').submit(function(e) {
-    e.preventDefault();
-    $.ajax({
-      url: 'login.php',
-      method: 'POST',
-      data: $(this).serialize(),
-      success: function(response) {
-        if (response) {
-          var alertMsg = JSON.parse(response);
-          $('#alert-container').html(alertMsg);
-        } else {
-          window.location.href = 'admin/index.php';
-        }
-      }
-    });
-  });
-</script> -->
 
 <script type="text/javascript">
     $('#login-form').click(function(event){
         event.preventDefault(); // prevent the default form submission
+       
         (async () => {
             var data = {
                 email: $('.email').val(),
@@ -182,31 +163,35 @@
                     console.log(response.message);
                     console.log("response user_type: " + response.role);
                     if (response.status == 'success') {
+                        let titleMessage = response.message + " as " + response.role;
+                        if (response.password_reset == false) {
+                            titleMessage = "Please reset your password to proceed.";
+                        }
                         Swal.fire({
                             icon: 'success',
-                            title: response.message,
+                            title: titleMessage,
                             confirmButtonColor: '#01a9ac',
                             confirmButtonText: 'OK'
                         }).then((result) => {
                             if (result.isConfirmed) {
                                 $('.md-close').trigger('click'); // close the modal form
-                                if (response.role == 'admin') {
-                                    // Redirect to the admin page
-                                    window.location = 'admin/index.php';
-                                } else  if (response.role == 'manager') {
-                                    // Redirect to the admin page
-                                    window.location = 'admin/index.php';
-                                } else if (response.role == 'staff') {
-                                    // Redirect to the staff page
-                                    window.location = 'staff/ticket_list.php';
+                                if (response.password_reset == false) {
+                                    window.location = 'reset_password.php';
                                 } else {
-                                    // Handle any other user types or errors
-                                    Swal.fire({
-                                        icon: 'error',
-                                        text: 'Invalid user type or error',
-                                        confirmButtonColor: '#eb3422',
-                                        confirmButtonText: 'OK'
-                                    });
+                                    if (response.role == 'admin') {
+                                        window.location = 'admin/index.php';
+                                    } else if (response.role == 'manager') {
+                                        window.location = 'admin/index.php';
+                                    } else if (response.role == 'staff') {
+                                        window.location = 'staff/index.php';
+                                    } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            text: 'Invalid user type or error',
+                                            confirmButtonColor: '#eb3422',
+                                            confirmButtonText: 'OK'
+                                        });
+                                    }
                                 }
                             }
                         });
@@ -221,6 +206,12 @@
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
                     console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
+                    Swal.fire({
+                            icon: 'error',
+                            text: 'Internal Server Error: ' + textStatus,
+                            confirmButtonColor: '#eb3422',
+                            confirmButtonText: 'OK'
+                        });
                 }
             });
         })()

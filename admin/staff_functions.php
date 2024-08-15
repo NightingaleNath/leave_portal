@@ -4,6 +4,10 @@ session_start();
 include('../includes/config.php');
 
 function resizeImage($sourcePath, $destinationPath, $width, $height) {
+     if (!function_exists('imagecreatefromjpeg') || !function_exists('imagejpeg')) {
+        throw new Exception('GD library is not available');
+    }
+    
     list($originalWidth, $originalHeight) = getimagesize($sourcePath);
     $src = imagecreatefromjpeg($sourcePath);
     $dst = imagecreatetruecolor($width, $height);
@@ -201,8 +205,9 @@ function assignLeaveTypes($employeeId, $leaveTypes) {
     mysqli_begin_transaction($conn);
 
     try {
-        // Delete existing leave types for the employee
-        $stmt = mysqli_prepare($conn, "DELETE FROM employee_leave_types WHERE emp_id = ?");
+        // Fetch existing leave types for the employee
+        $existingLeaveTypesQuery = "SELECT leave_type_id, available_days FROM employee_leave_types WHERE emp_id = ?";
+        $stmt = mysqli_prepare($conn, $existingLeaveTypesQuery);
         if (!$stmt) {
             throw new Exception('Prepare failed: ' . mysqli_error($conn));
         }
@@ -210,30 +215,71 @@ function assignLeaveTypes($employeeId, $leaveTypes) {
         if (!mysqli_stmt_execute($stmt)) {
             throw new Exception('Execute failed: ' . mysqli_stmt_error($stmt));
         }
+        $result = mysqli_stmt_get_result($stmt);
+        $existingLeaveTypes = [];
+        while ($row = mysqli_fetch_assoc($result)) {
+            $existingLeaveTypes[$row['leave_type_id']] = $row['available_days'];
+        }
+        mysqli_stmt_close($stmt);
 
-        // Insert new leave types
+        // Fetch all leave types and their assigned days
+        $leaveTypesQuery = "SELECT id, assign_days FROM tblleavetype";
+        $leaveTypesResult = mysqli_query($conn, $leaveTypesQuery);
+        if (!$leaveTypesResult) {
+            throw new Exception('Query failed: ' . mysqli_error($conn));
+        }
+        $leaveTypesAssignDays = [];
+        while ($row = mysqli_fetch_assoc($leaveTypesResult)) {
+            $leaveTypesAssignDays[$row['id']] = $row['assign_days'];
+        }
+
+        // Check which leave types should be added, updated, or deleted
+        foreach ($existingLeaveTypes as $leaveTypeId => $availableDays) {
+            if (!in_array($leaveTypeId, $leaveTypes)) {
+                // If leave type is not in the new assignment and has not been used, delete it
+                if ($availableDays == $leaveTypesAssignDays[$leaveTypeId]) {
+                    $stmt = mysqli_prepare($conn, "DELETE FROM employee_leave_types WHERE emp_id = ? AND leave_type_id = ?");
+                    if (!$stmt) {
+                        throw new Exception('Prepare failed: ' . mysqli_error($conn));
+                    }
+                    mysqli_stmt_bind_param($stmt, 'ii', $employeeId, $leaveTypeId);
+                    if (!mysqli_stmt_execute($stmt)) {
+                        throw new Exception('Execute failed: ' . mysqli_stmt_error($stmt));
+                    }
+                    mysqli_stmt_close($stmt);
+                }
+            }
+        }
+
+        // Insert or update new leave types
         foreach ($leaveTypes as $leaveTypeId) {
-            // Fetch assign_days for the leave type
-            $query = "SELECT assign_days FROM tblleavetype WHERE id = ?";
-            $stmt = mysqli_prepare($conn, $query);
-            mysqli_stmt_bind_param($stmt, 'i', $leaveTypeId);
-            if (!mysqli_stmt_execute($stmt)) {
-                throw new Exception('Execute failed: ' . mysqli_stmt_error($stmt));
+            if (array_key_exists($leaveTypeId, $existingLeaveTypes)) {
+                // Check if the leave type has been used
+                if ($existingLeaveTypes[$leaveTypeId] == $leaveTypesAssignDays[$leaveTypeId]) {
+                    // Leave type has not been used, update available days
+                    $stmt = mysqli_prepare($conn, "UPDATE employee_leave_types SET available_days = ? WHERE emp_id = ? AND leave_type_id = ?");
+                    if (!$stmt) {
+                        throw new Exception('Prepare failed: ' . mysqli_error($conn));
+                    }
+                    mysqli_stmt_bind_param($stmt, 'iii', $leaveTypesAssignDays[$leaveTypeId], $employeeId, $leaveTypeId);
+                    if (!mysqli_stmt_execute($stmt)) {
+                        throw new Exception('Execute failed: ' . mysqli_stmt_error($stmt));
+                    }
+                    mysqli_stmt_close($stmt);
+                }
+            } else {
+                // Insert new leave types
+                $assign_days = $leaveTypesAssignDays[$leaveTypeId];
+                $stmt = mysqli_prepare($conn, "INSERT INTO employee_leave_types (emp_id, leave_type_id, available_days) VALUES (?, ?, ?)");
+                if (!$stmt) {
+                    throw new Exception('Prepare failed: ' . mysqli_error($conn));
+                }
+                mysqli_stmt_bind_param($stmt, 'iii', $employeeId, $leaveTypeId, $assign_days);
+                if (!mysqli_stmt_execute($stmt)) {
+                    throw new Exception('Execute failed: ' . mysqli_stmt_error($stmt));
+                }
+                mysqli_stmt_close($stmt);
             }
-            mysqli_stmt_bind_result($stmt, $assign_days);
-            mysqli_stmt_fetch($stmt);
-            mysqli_stmt_close($stmt);
-
-            // Insert into employee_leave_types
-            $stmt = mysqli_prepare($conn, "INSERT INTO employee_leave_types (emp_id, leave_type_id, available_days) VALUES (?, ?, ?)");
-            if (!$stmt) {
-                throw new Exception('Prepare failed: ' . mysqli_error($conn));
-            }
-            mysqli_stmt_bind_param($stmt, 'iii', $employeeId, $leaveTypeId, $assign_days);
-            if (!mysqli_stmt_execute($stmt)) {
-                throw new Exception('Execute failed: ' . mysqli_stmt_error($stmt));
-            }
-            mysqli_stmt_close($stmt);
         }
 
         // Commit transaction
@@ -331,6 +377,7 @@ if(isset($_POST['action'])) {
         error_log("Received leaveTypes: " . implode(', ', $leaveTypes));
 
         assignLeaveTypes($employeeId, $leaveTypes);
+        
     } elseif ($_POST['action'] === 'assign-supervisor') {
         $employeeId = $_POST['employeeId'];
         $supervisorId = $_POST['supervisorId'];
@@ -389,14 +436,18 @@ if (empty($employeeData)) {
                             <img class="img-fluid img-radius" src="' . $imagePath . '" alt="round-img">
                             <div class="img-overlay img-radius">
                                 <span>
-                                    <a href="staff_detailed.php?id=' . $employee['emp_id'] . '&view=2" class="btn btn-sm btn-primary" data-popup="lightbox"><i class="icofont icofont-eye-alt"></i></a>';
-                                     // Check if the user role is Admin or Manager
+                                    <a href="staff_detailed.php?id=' . $employee['emp_id'] . '&view=2" class="btn btn-sm btn-primary" style="margin-top: 1px;" data-popup="lightbox"><i class="icofont icofont-eye-alt"></i></a>';
+                                     // Check if the user role is Admin or Manager and the employee's designation is not 'Administrator'
                                     if ($userRole === 'Admin' || ($userRole === 'Manager' && $employee['designation'] !== 'Administrator')) {
-                                        echo '<a href="new_staff.php?id=' . $employee['emp_id'] . '&edit=1" class="btn btn-sm btn-primary" data-popup="lightbox" style="margin-left: 5px;"><i class="icofont icofont-edit"></i></a>
-                                        <a href="#" class="btn btn-sm btn-primary delete-staff" data-id="' . $employee['emp_id'] . '"><i class="icofont icofont-ui-delete"></i></a>';
+                                        echo '<a href="new_staff.php?id=' . $employee['emp_id'] . '&edit=1" class="btn btn-sm btn-primary" data-popup="lightbox" style="margin-left: 8px; margin-top: 1px;"><i class="icofont icofont-edit"></i></a>';
+                                        
+                                        // Only show the delete icon if the employee's designation is not 'Administrator'
+                                        if ($employee['designation'] !== 'Administrator') {
+                                            echo '<a href="#" class="btn btn-sm btn-primary delete-staff" style="margin-top: 1px;" data-id="' . $employee['emp_id'] . '"><i class="icofont icofont-ui-delete"></i></a>';
+                                        }
                                     }
-                                    
-                               echo '</span>
+
+                                echo '</span>
                             </div>
                         </div>
                         <div class="user-content">

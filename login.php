@@ -3,6 +3,15 @@ session_start();
 include('includes/config.php');
 require_once 'alerts.php';
 
+// Enable error logging
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+ini_set('error_log', 'path_to_your_error_log_file.log'); // Set the path to your error log file
+error_reporting(E_ALL);
+
+// Start output buffering
+ob_start();
+
 function login($email, $password) {
     global $conn;
 
@@ -11,6 +20,7 @@ function login($email, $password) {
     // Query staff table
     $staffQuery = mysqli_query($conn, "SELECT * FROM tblemployees WHERE email_id='$email' AND password='$password'");
     if (!$staffQuery) {
+        error_log("MySQL error: " . mysqli_error($conn));
         return array('status' => 'error', 'message' => "Error: " . mysqli_error($conn));
     } else {
         $staffCount = mysqli_num_rows($staffQuery);
@@ -18,7 +28,6 @@ function login($email, $password) {
             $recordsRow = mysqli_fetch_assoc($staffQuery);
             return checkAndSetSession($recordsRow);
         } else {
-            // Query customers table
             return array('status' => 'error', 'message' => 'Invalid Details');
         }
     }
@@ -43,21 +52,27 @@ function checkAndSetSession($userRecord) {
     $_SESSION['simageurl'] = $userRecord['image_path'];
     $_SESSION['last_activity'] = time(); // Set the last activity time
 
+    $passwordReset = $userRecord['password_reset'];
+
     if ($userRecord['role'] == 'Admin') {
         $_SESSION['department'] = $userRecord['department'];
         $userType = 'admin';
-        return array('status' => 'success', 'message' => 'Successfully logged in as admin', 'role' => $userType);
     } elseif ($userRecord['role'] == 'Manager') {
         $_SESSION['department'] = $userRecord['department'];
         $userType = 'manager';
-        return array('status' => 'success', 'message' => 'Successfully logged in as manager', 'role' => $userType);
     } elseif ($userRecord['role'] == 'Staff') {
         $_SESSION['department'] = $userRecord['department'];
         $userType = 'staff';
-        return array('status' => 'success', 'message' => 'Successfully logged in as staff', 'role' => $userType);
     } else {
         return array('status' => 'error', 'message' => 'Invalid user type');
     }
+
+    return array(
+        'status' => 'success',
+        'message' => 'Successfully logged in',
+        'role' => $userType,
+        'password_reset' => $passwordReset
+    );
 }
 
 if (isset($_POST['action'])) {
@@ -65,10 +80,20 @@ if (isset($_POST['action'])) {
         $email = $_POST['email'];
         $password = $_POST['password'];
 
-        $loginResponse = login($email, $password);
+        try {
+            $loginResponse = login($email, $password);
 
-        header('Content-Type: application/json'); // Set the content type to JSON
-        echo json_encode($loginResponse);
+            // Clean (erase) the output buffer before sending the JSON response
+            ob_end_clean();
+
+            header('Content-Type: application/json'); // Set the content type to JSON
+            echo json_encode($loginResponse);
+        } catch (Exception $e) {
+            ob_end_clean();
+            error_log("Exception: " . $e->getMessage());
+            header('Content-Type: application/json');
+            echo json_encode(array('status' => 'error', 'message' => 'Internal Server Error', 'error' => $e->getMessage()));
+        }
         exit;
     }
 }

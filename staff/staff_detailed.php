@@ -1,4 +1,5 @@
 <?php include('../includes/header.php')?>
+
 <?php
 // Check if the user is logged in
 if (!isset($_SESSION['slogin']) || !isset($_SESSION['srole'])) {
@@ -8,12 +9,11 @@ if (!isset($_SESSION['slogin']) || !isset($_SESSION['srole'])) {
 
 // Check if the user has the role of Manager or Admin
 $userRole = $_SESSION['srole'];
-if ($userRole !== 'Manager' && $userRole !== 'Admin') {
+if ($userRole !== 'Staff') {
     header('Location: ../index.php');
     exit();
 }
 ?>
-
 
 <body>
 <!-- Pre-loader start -->
@@ -94,7 +94,7 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                                         <div class="pull-right cover-btn">
                                                                             <button type="button" class="btn btn-primary m-r-10 m-b-5" data-toggle="modal" data-target="#change-password-dialog"> Change Password</button>
                                                                         </div>
-                                                                    <?php endif; ?>    
+                                                                    <?php endif; ?>  
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -159,7 +159,7 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                                         ?>
                                                                         <div class="card-header">
                                                                             <h5 class="card-header-text">Assigned Supervisor</h5>
-                                                                            <?php if ($userRole === 'Admin'): ?>
+                                                                            <?php if (($userRole === 'Admin' || $userRole === 'Manager') && !($userRole === 'Manager' && $designation === 'Administrator')): ?>
                                                                                 <button data-toggle="modal" data-target="#edit-supervisor" type="button" class="btn btn-sm btn-primary waves-effect waves-light f-right">
                                                                                     <i class="icofont icofont-settings"></i>
                                                                                 </button>
@@ -199,7 +199,7 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                                         ?>
                                                                         <div class="card-header">
                                                                             <h5 class="card-header-text">Leave Credits</h5>
-                                                                            <?php if ($userRole === 'Admin'): ?>
+                                                                            <?php if (($userRole === 'Admin' || $userRole === 'Manager') && !($userRole === 'Manager' && $designation === 'Administrator')): ?>
                                                                                 <button data-toggle="modal" data-target="#edit-leave-type" type="button" class="btn btn-sm btn-primary waves-effect waves-light f-right">
                                                                                     <i class="icofont icofont-settings"></i>
                                                                                 </button>
@@ -444,41 +444,26 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                                         <?php
                                                                             $employeeId = $row['emp_id'];
                                                                             
-                                                                            // Fetch the employee's role and department
-                                                                            $employeeQuery = "SELECT role, department FROM tblemployees WHERE emp_id = ?";
-                                                                            $stmt = $conn->prepare($employeeQuery);
+                                                                            // Fetch the employee's department
+                                                                            $employeeDeptQuery = "SELECT department FROM tblemployees WHERE emp_id = ?";
+                                                                            $stmt = $conn->prepare($employeeDeptQuery);
                                                                             $stmt->bind_param('i', $employeeId);
                                                                             $stmt->execute();
                                                                             $result = $stmt->get_result();
-                                                                            $employeeRow = $result->fetch_assoc();
-                                                                            $employeeRole = $employeeRow['role'];
-                                                                            $employeeDept = $employeeRow['department'];
+                                                                            $employeeDeptRow = $result->fetch_assoc();
+                                                                            $employeeDept = $employeeDeptRow['department'];
 
-                                                                            // Initialize the query to fetch supervisors
-                                                                            if ($employeeRole === 'Manager') {
-                                                                                // If the employee is a manager, list only managers in the same department
-                                                                                $supervisorQuery = "
-                                                                                    SELECT emp_id, first_name, middle_name, last_name 
-                                                                                    FROM tblemployees 
-                                                                                    WHERE role = 'Manager' 
-                                                                                    AND department = ? 
-                                                                                    AND emp_id != ?
-                                                                                ";
-                                                                                $stmt = $conn->prepare($supervisorQuery);
-                                                                                $stmt->bind_param('si', $employeeDept, $employeeId);
-                                                                            } else {
-                                                                                // If the employee is a staff member, list supervisors in the same department (either managers or staff with is_supervisor = 1)
-                                                                                $supervisorQuery = "
-                                                                                    SELECT emp_id, first_name, middle_name, last_name 
-                                                                                    FROM tblemployees 
-                                                                                    WHERE (role = 'Manager' OR (is_supervisor = 1 AND department = ?)) 
-                                                                                    AND department = ? 
-                                                                                    AND emp_id != ?
-                                                                                ";
-                                                                                $stmt = $conn->prepare($supervisorQuery);
-                                                                                $stmt->bind_param('ssi', $employeeDept, $employeeDept, $employeeId);
-                                                                            }
-
+                                                                            // Fetch supervisors from the database excluding Admins and the current employee, and applying the department condition
+                                                                            $supervisorQuery = "
+                                                                                SELECT emp_id, first_name, middle_name, last_name 
+                                                                                FROM tblemployees 
+                                                                                WHERE is_supervisor = 1 
+                                                                                AND role != 'Admin' 
+                                                                                AND emp_id != ? 
+                                                                                AND (role = 'Manager' OR department = ?)
+                                                                            ";
+                                                                            $stmt = $conn->prepare($supervisorQuery);
+                                                                            $stmt->bind_param('is', $employeeId, $employeeDept);
                                                                             $stmt->execute();
                                                                             $supervisorResult = $stmt->get_result();
                                                                             
@@ -489,7 +474,6 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                                             }
                                                                         ?>
                                                                     </select>
-
                                                                     <div class="row m-t-15">
                                                                         <div class="col-md-12">
                                                                             <button type="button" id="assignSupervisorBtn" class="btn btn-primary btn-md btn-block waves-effect text-center">Assign Supervisor</button>
@@ -553,7 +537,7 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                                                 <hr>
                                                 <div class="row">
                                                     <div class="col-md-10">
-                                                        <p class="text-inverse text-left"><b>You will be authenticated after password is changed.</b></p>
+                                                        <p class="text-inverse text-left"><b>You will be authenticated after password reset.</b></p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -581,295 +565,81 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
 <!-- Global site tag (gtag.js) - Google Analytics -->
 <script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-23581568-13"></script>
 <script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
 
-gtag('config', 'UA-23581568-13');
-</script>
-
-<script>
-    document.getElementById('selectAllLeaveTypes').addEventListener('change', function() {
-        var checkboxes = document.querySelectorAll('input[name="leaveTypes[]"]');
-        checkboxes.forEach(function(checkbox) {
-            checkbox.checked = this.checked;
-        }.bind(this));
-    });
-
-    document.addEventListener('DOMContentLoaded', function() {
-        var checkboxes = document.querySelectorAll('input[name="leaveTypes[]"]');
-        var saveButton = document.getElementById('saveLeaveTypesBtn');
-        var initialCheckedStates = Array.from(checkboxes).map(checkbox => checkbox.checked);
-
-        // Function to check for changes and enable/disable the Save button
-        function checkForChanges() {
-            var currentCheckedStates = Array.from(checkboxes).map(checkbox => checkbox.checked);
-            var hasChanges = !initialCheckedStates.every((state, index) => state === currentCheckedStates[index]);
-            
-            if (hasChanges) {
-                saveButton.classList.remove('btn-disabled');
-                saveButton.classList.add('btn-primary');
-            } else {
-                saveButton.classList.remove('btn-primary');
-                saveButton.classList.add('btn-disabled');
-            }
-            saveButton.disabled = !hasChanges;
-        }
-
-        // Disable the Save button on page load
-        saveButton.classList.remove('btn-primary');
-        saveButton.classList.add('btn-disabled');
-        saveButton.disabled = true;
-
-        // Event listener for checkbox changes
-        checkboxes.forEach(function(checkbox) {
-            checkbox.addEventListener('change', checkForChanges);
-        });
-
-        // Event listener for the "Select All" checkbox
-        document.getElementById('selectAllLeaveTypes').addEventListener('change', function(event) {
-            checkboxes.forEach(function(checkbox) {
-                if (!checkbox.disabled) {
-                    checkbox.checked = event.target.checked;
-                }
-            });
-            checkForChanges();
-        });
-
-        // Check for changes when the modal is opened
-        $('#edit-leave-type').on('shown.bs.modal', function() {
-            initialCheckedStates = Array.from(checkboxes).map(checkbox => checkbox.checked);
-            checkForChanges();
-        });
-    });
-
-
-    document.getElementById('saveLeaveTypesBtn').addEventListener('click', function(event) {
-        event.preventDefault(); // prevent the default form submission
-
-        // $('#edit-leave-type').modal('hide');
-        
-        // Validate if at least one leave type is selected
-        var checkboxes = document.querySelectorAll('input[name="leaveTypes[]"]');
-        var isChecked = false;
-        checkboxes.forEach(function(checkbox) {
-            if (checkbox.checked) {
-                isChecked = true;
-            }
-        });
-        
-        if (!isChecked) {
-            $('.modal').css('z-index', '1050');
-            Swal.fire({
-                icon: 'warning',
-                text: 'Please select at least one leave type',
-                confirmButtonColor: '#ffc107',
-                confirmButtonText: 'OK',
-                didClose: () => {
-                    // Restore the z-index of the modal
-                    $('.modal').css('z-index', '');
-                }
-            });
-            return;
-        }
-        
-        console.log("DATA HERE PASSED")
-
-        // If validation passes, proceed with form submission
-        var formData = new FormData();
-        formData.append('employeeId', <?php echo $employeeId; ?>);
-        formData.append('action', 'assign-leave-types');   
-
-        // Append selected leave types to formData
-        checkboxes.forEach(function(checkbox) {
-            if (checkbox.checked) {
-                formData.append('leaveTypes[]', checkbox.value);
-            }
-        });
-
-        // Log the formData to the console
-        for (var pair of formData.entries()) {
-            console.log("DATA TO BACKEND HERE: " + pair[0] + ': ' + pair[1]);
-        }
-
-        fetch('staff_functions.php', {
-            method: 'POST',
-            body: formData
-        }).then(response => response.text())
-        .then(data => {
-            $('.modal').css('z-index', '1050');
-            Swal.fire({
-                icon: 'success',
-                text: 'Leave types updated successfully!',
-                confirmButtonColor: '#01a9ac',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $('.modal').css('z-index', '');
-                    location.reload();
-                }
-            });
-        }).catch(error => {
-            console.error('Error:', error);
-            $('.modal').css('z-index', '1050');
-            Swal.fire({
-                icon: 'error',
-                text: 'An error occurred while updating leave types',
-                confirmButtonColor: '#eb3422',
-                confirmButtonText: 'OK',
-                didClose: () => {
-                    // Restore the z-index of the modal
-                    $('.modal').css('z-index', '');
-                }
-            });
-        });
-    });
-
-    // Assign supervisor
-    document.getElementById('assignSupervisorBtn').addEventListener('click', function(event) {
-        event.preventDefault(); // prevent the default form submission
-
-        // $('#edit-supervisor').modal('hide');
-        
-        var supervisorId = document.querySelector('select[name="supervisor"]').value;
-        var employeeId = <?php echo $employeeId; ?>; // Assume $employeeId is set and contains the employee's ID
-        
-        if (!supervisorId) {
-            $('.modal').css('z-index', '1050');
-            Swal.fire({
-                icon: 'warning',
-                text: 'Please select a supervisor',
-                confirmButtonColor: '#ffc107',
-                confirmButtonText: 'OK',
-                didClose: () => {
-                    // Restore the z-index of the modal
-                    $('.modal').css('z-index', '');
-                }
-            });
-            return;
-        }
-
-        var formData = new FormData();
-        formData.append('employeeId', employeeId);
-        formData.append('supervisorId', supervisorId);
-        formData.append('action', 'assign-supervisor');
-        
-        fetch('staff_functions.php', {
-            method: 'POST',
-            body: formData
-        }).then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                $('.modal').css('z-index', '1050');
-                Swal.fire({
-                    icon: 'success',
-                    text: 'Supervisor assigned successfully!',
-                    confirmButtonColor: '#01a9ac',
-                    confirmButtonText: 'OK'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                         $('.modal').css('z-index', '');
-                        location.reload();
-                    }
-                });
-            } else {
-                $('.modal').css('z-index', '1050');
-                Swal.fire({
-                    icon: 'error',
-                    text: 'An error occurred while assigning supervisor',
-                    confirmButtonColor: '#eb3422',
-                    confirmButtonText: 'OK',
-                    didClose: () => {
-                        // Restore the z-index of the modal
-                        $('.modal').css('z-index', '');
-                    }
-                });
-            }
-        }).catch(error => {
-            console.error('Error:', error);
-             $('.modal').css('z-index', '1050');
-            Swal.fire({
-                icon: 'error',
-                text: 'An error occurred while assigning supervisor',
-                confirmButtonColor: '#eb3422',
-                confirmButtonText: 'OK',
-                didClose: () => {
-                    // Restore the z-index of the modal
-                    $('.modal').css('z-index', '');
-                }
-            });
-        });
-    });
+    gtag('config', 'UA-23581568-13');
 </script>
 
 <script type="text/javascript">
-    $('#change_password').click(function(event) {
-        event.preventDefault();
-        $('.modal').css('z-index', '1050');
+        $('#change_password').click(function(event) {
+            event.preventDefault();
+            $('.modal').css('z-index', '1050');
+            
+            (async () => {
+                var data = {
+                    old_password: $('#old_password').val(),
+                    new_password: $('#new_password').val(),
+                    confirm_password: $('#confirm_password').val(),
+                    action: "change_password",
+                };
 
-        (async () => {
-            var data = {
-                old_password: $('#old_password').val(),
-                new_password: $('#new_password').val(),
-                confirm_password: $('#confirm_password').val(),
-                action: "change_password",
-            };
-
-            if (data.old_password.trim() === '' || data.new_password.trim() === '' || data.confirm_password.trim() === '') {
-                Swal.fire({
-                    icon: 'warning',
-                    text: 'Please fill in all fields.',
-                    confirmButtonColor: '#ffc107',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-            if (data.new_password !== data.confirm_password) {
-                Swal.fire({
-                    icon: 'warning',
-                    text: 'New password and confirmation password do not match.',
-                    confirmButtonColor: '#ffc107',
-                    confirmButtonText: 'OK'
-                });
-                return;
-            }
-
-            $.ajax({
-                url: 'password_functions.php',
-                type: 'post',
-                data: data,
-                success: function(response) {
-                    response = JSON.parse(response);
-                    if (response.status == 'success') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Password Reset Successfully',
-                            text: 'Your password has been changed successfully. Kindly login again',
-                            confirmButtonColor: '#01a9ac',
-                            confirmButtonText: 'OK'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                $('.md-close').trigger('click');
-                                window.location = '../logout.php';
-                            }
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            text: response.message,
-                            confirmButtonColor: '#eb3422',
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
+                if (data.old_password.trim() === '' || data.new_password.trim() === '' || data.confirm_password.trim() === '') {
+                    Swal.fire({
+                        icon: 'warning',
+                        text: 'Please fill in all fields.',
+                        confirmButtonColor: '#ffc107',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
                 }
-            });
-        })()
-    });
-</script>
+
+                if (data.new_password !== data.confirm_password) {
+                    Swal.fire({
+                        icon: 'warning',
+                        text: 'New password and confirmation password do not match.',
+                        confirmButtonColor: '#ffc107',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+
+                $.ajax({
+                    url: '../admin/password_functions.php',
+                    type: 'post',
+                    data: data,
+                    success: function(response) {
+                        response = JSON.parse(response);
+                        if (response.status == 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Password Reset Successfully',
+                                text: 'Your password has been reset successfully. Kindly login again',
+                                confirmButtonColor: '#01a9ac',
+                                confirmButtonText: 'OK'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    $('.md-close').trigger('click');
+                                    window.location = '../logout.php';
+                                }
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                text: response.message,
+                                confirmButtonColor: '#eb3422',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
+                    }
+                });
+            })()
+        });
+    </script>
 
 </body>
 

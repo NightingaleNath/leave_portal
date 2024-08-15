@@ -3,10 +3,6 @@ date_default_timezone_set('Africa/Accra');
 session_start();
 include('../includes/config.php');
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 function getAvailableDays($empId, $leaveTypeId) {
     global $conn;
 
@@ -66,7 +62,7 @@ function insertLeaveRequest($empId, $leaveTypeId, $startDate, $endDate, $numberD
         $allowedfileExtensions = array('pdf', 'jpg', 'jpeg', 'png');
         if (in_array($fileExtension, $allowedfileExtensions)) {
             // Directory in which the uploaded file will be moved
-            $uploadFileDir = './uploaded_files/';
+            $uploadFileDir = '../sick/files/';
             $dest_path = $uploadFileDir . $newFileName;
             
             if (move_uploaded_file($fileTmpPath, $dest_path)) {
@@ -79,12 +75,20 @@ function insertLeaveRequest($empId, $leaveTypeId, $startDate, $endDate, $numberD
         }
     }
 
-    $stmt = mysqli_prepare($conn, "INSERT INTO tblleave (leave_type, requested_days, from_date, to_date, created_date, leave_status, empid, remarks, sick_file)
-                            VALUES (?, ?, ?, ?, NOW(), 0, ?, ?, ?)");
-    mysqli_stmt_bind_param($stmt, 'sississ', $leaveTypeId, $numberDays, $startDate, $endDate, $empId, $remarks, $sickFileName);
-    $result = mysqli_stmt_execute($stmt);
+    $insertQuery = "INSERT INTO tblleave (leave_type_id, requested_days, from_date, to_date, created_date, leave_status, empid, remarks, sick_file)
+                            VALUES (?, ?, ?, ?, NOW(), 0, ?, ?, ?)";
+    $stmt = mysqli_prepare($conn, $insertQuery);
 
-    if ($result) {
+    if ($stmt === false) {
+        // Log the error message
+        error_log("Failed to prepare statement: " . mysqli_error($conn));
+        return ['status' => 'error', 'message' => 'Failed to prepare the SQL statement.'];
+    }
+
+    mysqli_stmt_bind_param($stmt, 'iississ', $leaveTypeId, $numberDays, $startDate, $endDate, $empId, $remarks, $sickFileName);
+    mysqli_stmt_execute($stmt);
+
+    if (mysqli_stmt_affected_rows($stmt) > 0) {
         $response = array('status' => 'success', 'message' => 'Leave request submitted successfully.');
         echo json_encode($response);
         exit;
@@ -233,9 +237,9 @@ if (!empty($searchQuery)) {
 // Apply role-based conditions
 if ($userRole !== 'Admin') {
     if ($userRole === 'Manager') {
-        $conditions[] = "e.department = '$userDepartment'";
+        $conditions[] = "e.department = '$userDepartment' AND l.empid != $userId";
     } elseif ($isSupervisor == 1) {
-        $conditions[] = "e.supervisor_id = $userId";
+        $conditions[] = "e.supervisor_id = $userId AND l.empid != $userId";
     }
 }
 
@@ -267,7 +271,7 @@ if ($leaveTypeResult && mysqli_num_rows($leaveTypeResult) > 0) {
 
 // Generate and return the HTML markup for the leave cards
 if (empty($leaveData)) {
-    echo '<div class="col-lg-12 text-center">
+    echo '<div class="col-sm-12 text-center">
             <img src="../files/assets/images/no_data.png" class="img-radius" alt="No Data Found" style="width: 200px; height: auto;">
           </div>';
 } else {
@@ -331,13 +335,22 @@ if (empty($leaveData)) {
                             <div class="job-meta-data"><i class="icofont icofont-university"></i>Remaining Days: ' . $leave['available_days'] . '</div>
                             <div class="text-right">
                                <div class="dropdown-secondary dropdown">
-                                    <button class="btn btn-primary btn-mini dropdown-toggle waves-effect waves-light" type="button" id="dropdown1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Action</button>
-                                    <div class="dropdown-menu" aria-labelledby="dropdown1" data-dropdown-in="fadeIn" data-dropdown-out="fadeOut">
-                                       <a class="dropdown-item waves-light waves-effect review-btn" href="#" data-toggle="modal" data-target="#confirm-mail" data-submission-date="' . $leave['created_date'] . '" data-expiry-date="' . $leave['to_date'] . '" data-start-date="' . $leave['from_date'] . '" data-leave-reason="' . $leave['remarks'] . '" data-leave-remaing="' . $leave['available_days'] . '" data-leave-staff="' . $leave['first_name'] . ' ' . $leave['middle_name'] . ' ' . $leave['last_name'] . '" data-leave-type="' . $leaveTypeName . '" data-leave-status="' . $leaveStatusText . '" data-leave-id="' . $leave['id'] . '" data-requested-days="' . $leave['requested_days'] . '">
-                                            <span class="point-marker bg-danger"></span>Review
-                                        </a>
-                                        <a class="dropdown-item waves-light waves-effect" href="apply_leave.php?id=' . $leave['id'] . '&edit=1"><span class="point-marker bg-danger"></span>Edit Request</a>
-                                    </div>
+                                    <button class="btn btn-primary btn-mini waves-effect waves-light review-btn" 
+                                        type="button" 
+                                        data-toggle="modal" 
+                                        data-target="#confirm-mail" 
+                                        data-submission-date="' . $leave['created_date'] . '" 
+                                        data-expiry-date="' . $leave['to_date'] . '" 
+                                        data-start-date="' . $leave['from_date'] . '" 
+                                        data-leave-reason="' . $leave['remarks'] . '" 
+                                        data-leave-remaining="' . $leave['available_days'] . '" 
+                                        data-leave-staff="' . $leave['first_name'] . ' ' . $leave['middle_name'] . ' ' . $leave['last_name'] . '" 
+                                        data-leave-type="' . $leaveTypeName . '" 
+                                        data-leave-status="' . $leaveStatusText . '" 
+                                        data-leave-id="' . $leave['id'] . '" 
+                                        data-requested-days="' . $leave['requested_days'] . '">
+                                        Review
+                                    </button>
                                     <!-- end of dropdown menu -->
                                 </div>
                             </div></div>
@@ -346,5 +359,6 @@ if (empty($leaveData)) {
     }
 }
 ?>
+
 
 

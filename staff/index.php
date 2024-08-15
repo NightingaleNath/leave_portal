@@ -1,5 +1,5 @@
-<?php include('../includes/header.php')?>
 
+<?php include('../includes/header.php')?>
 <?php
 // Check if the user is logged in
 if (!isset($_SESSION['slogin']) || !isset($_SESSION['srole'])) {
@@ -9,40 +9,48 @@ if (!isset($_SESSION['slogin']) || !isset($_SESSION['srole'])) {
 
 // Check if the user has the role of Manager or Admin
 $userRole = $_SESSION['srole'];
-if ($userRole !== 'Manager' && $userRole !== 'Admin') {
+if ($userRole !== 'Staff') {
     header('Location: ../index.php');
     exit();
 }
 
-$stmt = $conn->prepare("SELECT COUNT(*) as total_leave FROM tblleave");
+// Get the logged-in user ID
+$userId = $_SESSION['slogin'];
+
+$stmt = $conn->prepare("SELECT COUNT(*) as total_leave FROM tblleave WHERE empid = ?");
+$stmt->bind_param('i', $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 $row = $result->fetch_assoc();
 $total_leave = $row['total_leave'];
 
 // Fetch the count of pending leaves
-$stmt = $conn->prepare("SELECT COUNT(*) as pending_leave FROM tblleave WHERE leave_status = 0");
+$stmt = $conn->prepare("SELECT COUNT(*) as pending_leave FROM tblleave WHERE empid = ? AND leave_status = 0");
+$stmt->bind_param('i', $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 $row = $result->fetch_assoc();
 $pending_leave = $row['pending_leave'];
 
 // Fetch the count of approved leaves
-$stmt = $conn->prepare("SELECT COUNT(*) as approved_leave FROM tblleave WHERE leave_status = 1");
+$stmt = $conn->prepare("SELECT COUNT(*) as approved_leave FROM tblleave WHERE empid = ? AND leave_status = 1");
+$stmt->bind_param('i', $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 $row = $result->fetch_assoc();
 $approved_leave = $row['approved_leave'];
 
 // Fetch the count of recalled leaves
-$stmt = $conn->prepare("SELECT COUNT(*) as recalled_leave FROM tblleave WHERE leave_status = 3");
+$stmt = $conn->prepare("SELECT COUNT(*) as recalled_leave FROM tblleave WHERE empid = ? AND leave_status = 3");
+$stmt->bind_param('i', $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 $row = $result->fetch_assoc();
 $recalled_leave = $row['recalled_leave'];
 
 // Fetch the count of canceled leaves
-$stmt = $conn->prepare("SELECT COUNT(*) as rejected_leave FROM tblleave WHERE leave_status = 4");
+$stmt = $conn->prepare("SELECT COUNT(*) as rejected_leave FROM tblleave WHERE empid = ? AND leave_status = 4");
+$stmt->bind_param('i', $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 $row = $result->fetch_assoc();
@@ -53,6 +61,7 @@ $pending_percentage = ($total_leave > 0) ? floor(($pending_leave / $total_leave)
 $approved_percentage = ($total_leave > 0) ? floor(($approved_leave / $total_leave) * 100) : 0;
 $recalled_percentage = ($total_leave > 0) ? floor(($recalled_leave / $total_leave) * 100) : 0;
 $rejected_percentage = ($total_leave > 0) ? floor(($rejected_leave / $total_leave) * 100) : 0;
+
 ?>
 
 <?php
@@ -378,151 +387,7 @@ while ($departmentRow = $departmentResult->fetch_assoc()) {
                                             </div>
                                             <?php endforeach; ?>
                                             <!-- Department  end -->
-
-                                            <!-- Start Newest Employee -->
-                                            <div class="col-md-12 col-xl-4">
-                                                <!-- contact data table card start -->
-                                                <?php
-                                                // Query to fetch attendance records
-                                                $stmt = mysqli_prepare($conn, "SELECT * 
-                                                                                FROM tblemployees e
-                                                                                WHERE DATE(e.date_created) = CURDATE()
-                                                                                ORDER BY e.emp_id ASC 
-                                                                                LIMIT 5");
-                                                mysqli_stmt_execute($stmt);
-                                                $result = mysqli_stmt_get_result($stmt);
-                                                ?>
-                                                <div class="card">
-                                                    <div class="card-header">
-                                                        <h5 class="card-header-text">Newest Employees</h5>
-                                                    </div>
-                                                    <div class="card-block contact-details">
-                                                        <div class="data_table_main table-responsive dt-responsive">
-                                                            <table class="table table-striped table-bordered nowrap">
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th>Full Name</th>
-                                                                        <th>Designation</th>
-                                                                        <th>Role</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <?php while ($row = mysqli_fetch_assoc($result)): ?>
-                                                                        <tr>
-                                                                            <td><strong><?php echo htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name']); ?></strong></td>
-                                                                            <td><?php echo htmlspecialchars($row['designation']); ?></td>
-                                                                            <td><?php echo htmlspecialchars($row['role']); ?></td>
-                                                                        </tr>
-                                                                    <?php endwhile; ?>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <!-- contact data table card end -->
-                                            </div>                  
-                                            <!-- End Newest Employee -->
-
-                                            <!-- Start Newest Employee -->
-                                            <div class="col-md-12 col-xl-4">
-                                                <!-- contact data table card start -->
-                                                <?php
-                                                // Query to fetch attendance records
-                                                $stmt = mysqli_prepare($conn, "SELECT a.date, a.staff_id, 
-                                                                                e.first_name, e.middle_name, e.last_name, a.attendance_id,
-                                                                                a.time_in, a.time_out 
-                                                                        FROM tblattendance a
-                                                                        JOIN tblemployees e ON a.staff_id = e.staff_id
-                                                                        WHERE a.date = CURDATE()
-                                                                        ORDER BY a.time_in ASC 
-                                                                        LIMIT 5");
-                                                mysqli_stmt_execute($stmt);
-                                                $result = mysqli_stmt_get_result($stmt);
-                                                ?>
-                                                <div class="card">
-                                                    <div class="card-header">
-                                                        <h5 class="card-header-text">Recent Attendance</h5>
-                                                    </div>
-                                                    <div class="card-block contact-details">
-                                                        <div class="data_table_main table-responsive dt-responsive">
-                                                            <table class="table table-striped table-bordered nowrap">
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th>Full Name</th>
-                                                                        <th>Time In</th>
-                                                                        <th>Time Out</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <?php while ($row = mysqli_fetch_assoc($result)): ?>
-                                                                        <?php
-                                                                            $time_in = new DateTime($row['time_in']);
-                                                                            $time_out = $row['time_out'] ? new DateTime($row['time_out']) : null;
-                                                                        ?>
-                                                                        <tr>
-                                                                            <td><strong><?php echo htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name']); ?></strong></td>
-                                                                            <td><?php echo htmlspecialchars(date('h:i A', strtotime($row['time_in']))); ?></td>
-                                                                            <td><?php echo $time_out ? htmlspecialchars(date('h:i A', strtotime($row['time_out']))) : '-'; ?></td>
-                                                                        </tr>
-                                                                    <?php endwhile; ?>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <!-- contact data table card end -->
-                                            </div>                  
-                                            <!-- End Newest Employee -->
-
-                                            <!-- Start Recent Leave -->
-                                            <div class="col-md-12 col-xl-4">
-                                                <!-- contact data table card start -->
-                                                <?php
-                                                // Query to fetch attendance records
-                                                $stmt = mysqli_prepare($conn, "SELECT l.id, l.leave_type_id, l.requested_days, l.from_date, l.to_date, l.remarks, l.created_date, l.leave_status, l.empid, e.first_name, e.middle_name, e.last_name 
-                                                                        FROM tblleave l
-                                                                        JOIN tblemployees e ON l.empid = e.emp_id
-                                                                        JOIN tblleavetype lt ON l.leave_type_id = lt.id
-                                                                        WHERE l.created_date = CURDATE()
-                                                                        ORDER BY e.emp_id ASC 
-                                                                        LIMIT 5");
-                                                mysqli_stmt_execute($stmt);
-                                                $result = mysqli_stmt_get_result($stmt);
-                                                ?>
-                                                <div class="card">
-                                                    <div class="card-header">
-                                                        <h5 class="card-header-text">Recent Leave</h5>
-                                                    </div>
-                                                    <div class="card-block contact-details">
-                                                        <div class="data_table_main table-responsive dt-responsive">
-                                                            <table class="table table-striped table-bordered nowrap">
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th>Full Name</th>
-                                                                        <th>Start Date</th>
-                                                                        <th>End Date</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <?php while ($row = mysqli_fetch_assoc($result)): ?>
-                                                                        <?php
-                                                                            $fromDate = date('jS F, Y', strtotime($row['from_date']));
-                                                                            $toDate = date('jS F, Y', strtotime($row['to_date']));
-                                                                        ?>
-                                                                        <tr>
-                                                                            <td><strong><?php echo htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name']); ?></strong></td>
-                                                                            <td><?php echo $fromDate? htmlspecialchars($fromDate) : '-'; ?></td>
-                                                                            <td><?php echo $toDate ? htmlspecialchars($toDate) : '-'; ?></td>
-                                                                        </tr>
-                                                                    <?php endwhile; ?>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <!-- contact data table card end -->
-                                            </div>                  
-                                            <!-- End Recent Leave -->
+                                                    
                                         </div>
                                     </div>
                                     <!-- Page-body end -->

@@ -9,13 +9,11 @@ if (!isset($_SESSION['slogin']) || !isset($_SESSION['srole'])) {
 
 // Check if the user has the role of Manager or Admin
 $userRole = $_SESSION['srole'];
-if ($userRole !== 'Manager' && $userRole !== 'Admin') {
+if ($userRole !== 'Staff') {
     header('Location: ../index.php');
     exit();
 }
-?>
 
-<?php
 if (isset($_POST['empId'])) {
     $empId = $_POST['empId'];
 
@@ -259,7 +257,7 @@ if (isset($_POST['empId'])) {
 
                 // AJAX request to submit the form data
                 $.ajax({
-                    url: 'leave_functions.php',
+                    url: '../admin/leave_functions.php',
                     type: 'POST',
                     data: formData,
                     contentType: false,

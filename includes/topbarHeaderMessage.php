@@ -66,7 +66,7 @@
             <ul class="show-notification profile-notification dropdown-menu"
                 data-dropdown-in="fadeIn" data-dropdown-out="fadeOut">
                 <li>
-                    <a href="user_profile.php">
+                    <a href="staff_detailed.php?id=<?= $session_id ?>&view=2">
                         <i class="feather icon-user"></i> Profile
                     </a>
                 </li>
