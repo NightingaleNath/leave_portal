@@ -1,3 +1,3 @@
 <?php
-define('EMAIL', 'nath.frema2@gmail.com');
-define('PASS', 'qfvntexndmrbobux');
+define('EMAIL', '');
+define('PASS', '');

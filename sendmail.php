@@ -68,12 +68,12 @@ function sendLeaveApplicationEmail($supervisorEmail, $name, $from, $to, $type, $
     if (!$mail) {
         return false;
     }
-    $resetLink = "http://localhost/leave_portal/index.php";
+    $redirectLink = "http://localhost/leave_portal/index.php";
     $subject = "$type Leave Application";
     $body = "
         <p>Hello $supervisorName,</p>
         <p>$name has applied for $type leave from $from to $to.</p>
-        <p>Please log into the Leave Application Portal and review using</p><p><a href='$resetLink'>Reset Password</a></p>
+        <p>Please log into the Leave Application Portal and review using</p><p><a href='$redirectLink'>Redirect Link</a></p>
         <p>Thank you.</p>
     ";
     return sendEmail($mail, $supervisorEmail, $subject, $body);
