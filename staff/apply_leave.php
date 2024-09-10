@@ -1,4 +1,4 @@
-<?php include('../includes/header.php')?>
+<?php include('../includes/header.php') ?>
 
 <?php
 // Check if the user is logged in
@@ -22,7 +22,7 @@ if (isset($_POST['empId'])) {
             FROM tblleavetype lt
             INNER JOIN employee_leave_types elt ON lt.id = elt.leave_type_id
             WHERE elt.emp_id = ?";
-    
+
     $stmt = $conn->prepare($sql);
     $stmt->bind_param('i', $empId);
     $stmt->execute();
@@ -43,40 +43,40 @@ if (isset($_POST['empId'])) {
 ?>
 
 <body>
-<!-- Pre-loader start -->
- <?php include('../includes/loader.php')?>
-<!-- Pre-loader end -->
-<div id="pcoded" class="pcoded">
-    <div class="pcoded-overlay-box"></div>
-    <div class="pcoded-container navbar-wrapper">
+    <!-- Pre-loader start -->
+    <?php include('../includes/loader.php') ?>
+    <!-- Pre-loader end -->
+    <div id="pcoded" class="pcoded">
+        <div class="pcoded-overlay-box"></div>
+        <div class="pcoded-container navbar-wrapper">
 
-       <?php include('../includes/topbar.php')?>
+            <?php include('../includes/topbar.php') ?>
 
-        <div class="pcoded-main-container">
-            <div class="pcoded-wrapper">
-                <?php $page_name = "apply_leave"; ?>
-                <?php include('../includes/sidebar.php')?>
-                <div class="pcoded-content">
-                    <div class="pcoded-inner-content">
-                        <!-- Main-body start -->
-                        <div class="main-body">
-                            <div class="page-wrapper">
-                                <!-- Page-header start -->
-                                <div class="page-header">
-                                    <div class="row align-items-end">
-                                        <div class="col-lg-8">
-                                            <div class="page-header-title">
-                                                <div class="d-inline">
-                                                   <h4>Leave Portal - Apply leave</h4>
-                                                      <span>Send all your leave request from here</span>
-                                                 </div>
+            <div class="pcoded-main-container">
+                <div class="pcoded-wrapper">
+                    <?php $page_name = "apply_leave"; ?>
+                    <?php include('../includes/sidebar.php') ?>
+                    <div class="pcoded-content">
+                        <div class="pcoded-inner-content">
+                            <!-- Main-body start -->
+                            <div class="main-body">
+                                <div class="page-wrapper">
+                                    <!-- Page-header start -->
+                                    <div class="page-header">
+                                        <div class="row align-items-end">
+                                            <div class="col-lg-8">
+                                                <div class="page-header-title">
+                                                    <div class="d-inline">
+                                                        <h4>Leave Portal - Apply leave</h4>
+                                                        <span>Send all your leave request from here</span>
+                                                    </div>
+                                                </div>
                                             </div>
+
                                         </div>
-                                        
                                     </div>
-                                </div>
-                                <!-- Page-header end -->
-                                   
+                                    <!-- Page-header end -->
+
                                     <!-- Page body start -->
                                     <div class="page-body">
                                         <div class="row">
@@ -89,38 +89,38 @@ if (isset($_POST['empId'])) {
                                                                     <div class="j-wrapper">
                                                                         <h4 style="text-align: center;">Create New Leave</h4>
                                                                     </div>
-                                                                     <?php
-                                                                        // Check if the user role is Admin and designation is Administrator
-                                                                        $userRole = $_SESSION['srole'];
-                                                                        $userDesignation = $_SESSION['sdesignation'];
+                                                                    <?php
+                                                                    // Check if the user role is Admin and designation is Administrator
+                                                                    $userRole = $_SESSION['srole'];
+                                                                    $userDesignation = $_SESSION['sdesignation'];
 
-                                                                        // Fetch all employees from the database
-                                                                        $sql = "SELECT emp_id, first_name, middle_name, last_name FROM tblemployees";
-                                                                        $result = mysqli_query($conn, $sql);
+                                                                    // Fetch all employees from the database
+                                                                    $sql = "SELECT emp_id, first_name, middle_name, last_name FROM tblemployees";
+                                                                    $result = mysqli_query($conn, $sql);
 
-                                                                        $employeeOptions = '<option value="" disabled selected>Select Employee</option>';
-                                                                        if ($result && mysqli_num_rows($result) > 0) {
-                                                                            while ($row = mysqli_fetch_assoc($result)) {
-                                                                                $employeeOptions .= '<option value="' . htmlspecialchars($row['emp_id']) . '">' . htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name']) . '</option>';
-                                                                            }
+                                                                    $employeeOptions = '<option value="" disabled selected>Select Employee</option>';
+                                                                    if ($result && mysqli_num_rows($result) > 0) {
+                                                                        while ($row = mysqli_fetch_assoc($result)) {
+                                                                            $employeeOptions .= '<option value="' . htmlspecialchars($row['emp_id']) . '">' . htmlspecialchars($row['first_name'] . ' ' . $row['middle_name'] . ' ' . $row['last_name']) . '</option>';
                                                                         }
-                                                                     ?>
+                                                                    }
+                                                                    ?>
 
                                                                     <div class="j-unit">
                                                                         <?php if ($userRole === 'Admin' && $userDesignation === 'Administrator'): ?>
-                                                                        <select class="js-example-disabled-results col-sm-12" name="empId" id="empId" required>
-                                                                            <?php echo $employeeOptions; ?>
-                                                                        </select>
+                                                                            <select class="js-example-disabled-results col-sm-12" name="empId" id="empId" required>
+                                                                                <?php echo $employeeOptions; ?>
+                                                                            </select>
                                                                         <?php else: ?>
-                                                                        <input type="hidden" id="empId" value="<?php echo htmlspecialchars($_SESSION['slogin']); ?>">
+                                                                            <input type="hidden" id="empId" value="<?php echo htmlspecialchars($_SESSION['slogin']); ?>">
                                                                         <?php endif; ?>
                                                                     </div>
                                                                     <!-- End of Employee list -->
                                                                     <!-- Start Leave type -->
                                                                     <div class="j-unit">
                                                                         <label class="j-input j-select">
-                                                                            <select  name="leave_type" id="leave_type">
-                                                                                 <option value="" selected="">Select Leave type</option>
+                                                                            <select name="leave_type" id="leave_type">
+                                                                                <option value="" selected="">Select Leave type</option>
                                                                             </select>
                                                                             <i></i>
                                                                         </label>
@@ -170,24 +170,32 @@ if (isset($_POST['empId'])) {
                                                                                 <input type="file" name="sick_file" id="sick_file" accept=".pdf, .jpg, .jpeg, .png" onchange="validateFile(this)">
                                                                             </div>
                                                                             <input type="text" id="sick_file_input" readonly="" placeholder="For sick leave only">
-                                                                             <span class="j-hint">Only: pdf, jpg, jpeg, png, less than 2MB</span>
+                                                                            <span class="j-hint">Only: pdf, jpg, jpeg, png, less than 2MB</span>
                                                                         </div>
                                                                     </div>
                                                                     <!-- end files -->
                                                                 </div>
-                                                                 <!-- end /.content -->
+                                                                <!-- end /.content -->
                                                                 <div class="j-footer">
+                                                                    <div id="loader-wrapper" style="display: none;">
+                                                                        <div class="preloader3 loader-block" style="height: 70px;">
+                                                                            <div class="circ1"></div>
+                                                                            <div class="circ2"></div>
+                                                                            <div class="circ3"></div>
+                                                                            <div class="circ4"></div>
+                                                                        </div>
+                                                                    </div>
                                                                     <button id="apply-leave" type="submit" class="btn btn-primary">Submit</button>
                                                                     <button type="reset" class="btn btn-default m-r-20">Reset</button>
                                                                 </div>
                                                                 <!-- end /.footer -->
                                                             </form>
-                                                       </div>
-                                                       <label class="col-sm-5"></label>
+                                                        </div>
+                                                        <label class="col-sm-5"></label>
                                                     </div>
                                                 </div>
                                                 <!-- Basic Inputs Validation end -->
-                                                
+
                                             </div>
                                         </div>
                                     </div>
@@ -206,12 +214,15 @@ if (isset($_POST['empId'])) {
     </div>
 
     <!-- Required Jquery -->
-    <?php include('../includes/scripts.php')?>
+    <?php include('../includes/scripts.php') ?>
 
     <script>
         $(document).ready(function() {
             $('#apply-leave').click(function(event) {
-                event.preventDefault(); // Prevent default form submission
+                event.preventDefault();
+
+                $('#apply-leave').prop('disabled', true);
+                $('#loader-wrapper').fadeIn();
 
                 // Collect form data
                 var formData = new FormData();
@@ -231,6 +242,8 @@ if (isset($_POST['empId'])) {
                         confirmButtonColor: '#ffc107',
                         confirmButtonText: 'OK'
                     });
+                    $('#apply-leave').prop('disabled', false);
+                    $('#loader-wrapper').fadeOut();
                     return;
                 }
 
@@ -242,6 +255,8 @@ if (isset($_POST['empId'])) {
                         confirmButtonColor: '#ffc107',
                         confirmButtonText: 'OK'
                     });
+                    $('#apply-leave').prop('disabled', false);
+                    $('#loader-wrapper').fadeOut();
                     return;
                 }
 
@@ -263,7 +278,9 @@ if (isset($_POST['empId'])) {
                     contentType: false,
                     processData: false,
                     success: function(response) {
-                         try {
+                        $('#apply-leave').prop('disabled', false);
+                        $('#loader-wrapper').fadeOut();
+                        try {
                             response = JSON.parse(response);
                             console.log('RESPONSE HERE: ' + response.status);
                             console.log(`RESPONSE HERE: ${response.message}`);
@@ -279,7 +296,7 @@ if (isset($_POST['empId'])) {
                                     }
                                 });
                             } else {
-                                 console.log('RESPONSE HERE: ' + response.status);
+                                console.log('RESPONSE HERE: ' + response.status);
                                 Swal.fire({
                                     icon: 'error',
                                     text: response.message,
@@ -299,6 +316,8 @@ if (isset($_POST['empId'])) {
                         }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
+                        $('#apply-leave').prop('disabled', false);
+                        $('#loader-wrapper').fadeOut();
                         console.log('AJAX Data HERE: ' + JSON.stringify(formData));
                         console.log("Response from server: " + jqXHR.responseText);
                         console.log("AJAX error: " + textStatus + ' : ' + errorThrown);
@@ -320,7 +339,9 @@ if (isset($_POST['empId'])) {
                 $.ajax({
                     url: '',
                     type: 'POST',
-                    data: { empId: empId },
+                    data: {
+                        empId: empId
+                    },
                     success: function(response) {
                         $('#leave_type').html(response);
                     }
@@ -334,13 +355,13 @@ if (isset($_POST['empId'])) {
 
             // Automatically load leave types for non-Admin users
             <?php if ($userRole !== 'Admin' || $userDesignation !== 'Administrator'): ?>
-            var empId = $('#empId').val();
-            loadLeaveTypes(empId);
+                var empId = $('#empId').val();
+                loadLeaveTypes(empId);
             <?php endif; ?>
 
             // Show or hide the file input based on the leave type
             $('#leave_type').change(function() {
-               var selectedLeaveType = $(this).find('option:selected').text().toLowerCase();
+                var selectedLeaveType = $(this).find('option:selected').text().toLowerCase();
                 if (selectedLeaveType.includes('sick') || selectedLeaveType === 'sick leave') {
                     $('#sick_file_container').show();
                 } else {
@@ -388,7 +409,7 @@ if (isset($_POST['empId'])) {
         }
     </script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const startDateInput = document.getElementById('start_date');
             const endDateInput = document.getElementById('end_date');
             const numberDaysInput = document.getElementById('number_days');
@@ -399,7 +420,7 @@ if (isset($_POST['empId'])) {
             endDateInput.setAttribute('min', today);
 
             function handleDateInput(input) {
-                input.addEventListener('input', function () {
+                input.addEventListener('input', function() {
                     const date = new Date(this.value);
                     const day = date.getUTCDay();
 
@@ -442,9 +463,9 @@ if (isset($_POST['empId'])) {
                     calculateDays();
                 });
 
-                input.addEventListener('focus', function () {
+                input.addEventListener('focus', function() {
                     const datePicker = this;
-                    const observer = new MutationObserver(function () {
+                    const observer = new MutationObserver(function() {
                         const calendarDays = datePicker.ownerDocument.querySelectorAll('td[data-date]');
                         calendarDays.forEach(day => {
                             const date = new Date(day.getAttribute('data-date'));
@@ -453,7 +474,10 @@ if (isset($_POST['empId'])) {
                             }
                         });
                     });
-                    observer.observe(datePicker.ownerDocument, { childList: true, subtree: true });
+                    observer.observe(datePicker.ownerDocument, {
+                        childList: true,
+                        subtree: true
+                    });
                 });
             }
 
@@ -495,6 +519,6 @@ if (isset($_POST['empId'])) {
         }
     </style>
 
- </body>
+</body>
 
 </html>

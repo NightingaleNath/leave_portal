@@ -106,7 +106,7 @@
     </script>
     
     <script type="text/javascript">
-    $('#reset').click(function(event){
+    $('#reset-password').click(function(event){
         event.preventDefault(); // prevent the default form submission
         var newPassword = $('#new_password').val();
         var confirmPassword = $('#confirm_password').val();

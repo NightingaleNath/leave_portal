@@ -2,8 +2,8 @@
 // Database credentials
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
-define('DB_PASS', 'C0d3Lyt!ckJ7$2DpN!cXq8zB@l7Dp');
-define('DB_NAME', '');
+define('DB_PASS', '');
+define('DB_NAME', 'leave_portal');
 
 // Establish database connection using MySQLi
 $conn = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);

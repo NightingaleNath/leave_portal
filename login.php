@@ -15,10 +15,10 @@ ob_start();
 function login($email, $password) {
     global $conn;
 
-    $password = md5($password); // Hash the password
+    $password = md5($password);
 
     // Query staff table
-    $staffQuery = mysqli_query($conn, "SELECT * FROM tblemployees WHERE email='$email' AND password='$password'");
+    $staffQuery = mysqli_query($conn, "SELECT * FROM tblemployees WHERE email_id='$email' AND password='$password'");
     if (!$staffQuery) {
         error_log("MySQL error: " . mysqli_error($conn));
         return array('status' => 'error', 'message' => "Error: " . mysqli_error($conn));

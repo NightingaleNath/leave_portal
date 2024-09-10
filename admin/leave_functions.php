@@ -2,8 +2,16 @@
 date_default_timezone_set('Africa/Accra');
 session_start();
 include('../includes/config.php');
+include('../sendmail.php');
 
-function getAvailableDays($empId, $leaveTypeId) {
+// Function to validate an email address
+function isValidEmail($email)
+{
+    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+function getAvailableDays($empId, $leaveTypeId)
+{
     global $conn;
 
     // Query to get the available days for the employee and leave type
@@ -12,7 +20,7 @@ function getAvailableDays($empId, $leaveTypeId) {
     $stmt->bind_param('ii', $empId, $leaveTypeId);
     $stmt->execute();
     $result = $stmt->get_result();
-    
+
     if ($result && $row = $result->fetch_assoc()) {
         return $row['available_days'];
     } else {
@@ -20,7 +28,8 @@ function getAvailableDays($empId, $leaveTypeId) {
     }
 }
 
-function calculateBusinessDays($startDate, $endDate) {
+function calculateBusinessDays($startDate, $endDate)
+{
     $startDate = new DateTime($startDate);
     $endDate = new DateTime($endDate);
     $days = $startDate->diff($endDate)->days + 1;
@@ -36,16 +45,64 @@ function calculateBusinessDays($startDate, $endDate) {
     return $businessDays;
 }
 
-function insertLeaveRequest($empId, $leaveTypeId, $startDate, $endDate, $numberDays, $remarks, $sickFile) {
+function getEmployeeName($empId)
+{
+    global $conn;
+    $query = "SELECT CONCAT(first_name, ' ', IFNULL(middle_name, ''), ' ', last_name) AS name FROM tblemployees WHERE emp_id = ?";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $empId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    if ($result && $row = mysqli_fetch_assoc($result)) {
+        return $row['name'];
+    }
+    return null;
+}
+
+function getLeaveTypeDescription($leaveTypeId)
+{
+    global $conn;
+    $query = "SELECT leave_type FROM tblleavetype WHERE id = ?";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $leaveTypeId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    if ($result && $row = mysqli_fetch_assoc($result)) {
+        return $row['leave_type'];
+    }
+    return null;
+}
+
+function getSupervisorInfo($empId)
+{
+    global $conn;
+    $query = "SELECT s.email_id AS supervisor_email, CONCAT(s.first_name, ' ', IFNULL(s.middle_name, ''), ' ', s.last_name) AS supervisor_name
+              FROM tblemployees e
+              JOIN tblemployees s ON e.supervisor_id = s.emp_id
+              WHERE e.emp_id = ?";
+    $stmt = mysqli_prepare($conn, $query);
+    mysqli_stmt_bind_param($stmt, 'i', $empId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    if ($result && $row = mysqli_fetch_assoc($result)) {
+        return [
+            'email' => $row['supervisor_email'],
+            'name' => $row['supervisor_name']
+        ];
+    }
+    return null;
+}
+
+function insertLeaveRequest($empId, $leaveTypeId, $startDate, $endDate, $numberDays, $remarks, $sickFile)
+{
     global $conn;
 
-    // Check available days
     $availableDays = getAvailableDays($empId, $leaveTypeId);
     if ($availableDays < $numberDays) {
-        return ['status' => 'error', 'message' => 'Not enough available days.'];
+        echo json_encode(['status' => 'error', 'message' => 'Not enough available days.']);
+        exit;
     }
 
-    // Handle file upload if present
     $sickFileName = null;
     if (!empty($sickFile['name'])) {
         $fileTmpPath = $sickFile['tmp_name'];
@@ -54,53 +111,75 @@ function insertLeaveRequest($empId, $leaveTypeId, $startDate, $endDate, $numberD
         $fileType = $sickFile['type'];
         $fileNameCmps = explode(".", $fileName);
         $fileExtension = strtolower(end($fileNameCmps));
-        
-        // Sanitize file name
         $newFileName = md5(time() . $fileName) . '.' . $fileExtension;
+        $allowedfileExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
 
-        // Check if the file extension is valid
-        $allowedfileExtensions = array('pdf', 'jpg', 'jpeg', 'png');
         if (in_array($fileExtension, $allowedfileExtensions)) {
-            // Directory in which the uploaded file will be moved
             $uploadFileDir = '../sick/files/';
             $dest_path = $uploadFileDir . $newFileName;
-            
+
             if (move_uploaded_file($fileTmpPath, $dest_path)) {
                 $sickFileName = $newFileName;
             } else {
-                return ['status' => 'error', 'message' => 'Error moving the file to the upload directory.'];
+                echo json_encode(['status' => 'error', 'message' => 'Error moving the file to the upload directory.']);
+                exit;
             }
         } else {
-            return ['status' => 'error', 'message' => 'Upload failed. Allowed file types: ' . implode(',', $allowedfileExtensions)];
+            echo json_encode(['status' => 'error', 'message' => 'Upload failed. Allowed file types: ' . implode(',', $allowedfileExtensions)]);
+            exit;
         }
     }
 
     $insertQuery = "INSERT INTO tblleave (leave_type_id, requested_days, from_date, to_date, created_date, leave_status, empid, remarks, sick_file)
-                            VALUES (?, ?, ?, ?, NOW(), 0, ?, ?, ?)";
+                    VALUES (?, ?, ?, ?, NOW(), 0, ?, ?, ?)";
     $stmt = mysqli_prepare($conn, $insertQuery);
-
     if ($stmt === false) {
-        // Log the error message
         error_log("Failed to prepare statement: " . mysqli_error($conn));
-        return ['status' => 'error', 'message' => 'Failed to prepare the SQL statement.'];
+        echo json_encode(['status' => 'error', 'message' => 'Failed to prepare the SQL statement.']);
+        exit;
     }
 
     mysqli_stmt_bind_param($stmt, 'iississ', $leaveTypeId, $numberDays, $startDate, $endDate, $empId, $remarks, $sickFileName);
     mysqli_stmt_execute($stmt);
 
     if (mysqli_stmt_affected_rows($stmt) > 0) {
-        $response = array('status' => 'success', 'message' => 'Leave request submitted successfully.');
-        echo json_encode($response);
-        exit;
-    } else {
-        $response = array('status' => 'error', 'message' => 'Failed to submit leave request.');
-        echo json_encode($response);
-        exit;
-    }
+        $supervisorInfo = getSupervisorInfo($empId);
+        $senderName = getEmployeeName($empId);
+        $leaveType = getLeaveTypeDescription($leaveTypeId);
 
+        if ($supervisorInfo && isValidEmail($supervisorInfo['email'])) {
+            $emailSent = sendLeaveApplicationEmail($supervisorInfo['email'], $senderName, $startDate, $endDate, $leaveType, $supervisorInfo['name']);
+            if (!$emailSent) {
+                echo json_encode(['status' => 'success', 'message' => 'Leave application was submitted successfully, but we encountered an issue sending the notification email to your supervisor.']);
+                error_log("Leave application submitted successfully, but notification email failed.");
+            } else {
+                echo json_encode(['status' => 'success', 'message' => 'Your leave request has been submitted successfully, and a notification email has been sent to your supervisor.']);
+            }
+        } else {
+            echo json_encode(['status' => 'success', 'message' => 'Leave submitted successfully, but the supervisor’s email address is not valid for receiving messages.']);
+        }
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Failed to submit leave request.']);
+    }
+    exit;
 }
 
-function updateStatus($id, $status) {
+function getAllEmployeeEmails()
+{
+    global $conn;
+    $query = "SELECT email_id FROM tblemployees";
+    $result = mysqli_query($conn, $query);
+    $emails = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        if (isValidEmail($row['email_id'])) {
+            $emails[] = $row['email_id'];
+        }
+    }
+    return $emails;
+}
+
+function updateStatus($id, $status)
+{
     global $conn;
 
     // Fetch leave details
@@ -142,8 +221,20 @@ function updateStatus($id, $status) {
         mysqli_stmt_bind_param($stmt, 'ii', $status, $id);
         $result = mysqli_stmt_execute($stmt);
 
+        $employeeEmails = getAllEmployeeEmails();
+        $senderName = getEmployeeName($empId);
+        $leaveType = getLeaveTypeDescription($leaveTypeId);
+
         if ($result) {
-            $response = array('status' => 'success', 'message' => 'Leave status updated successfully.');
+            if ($status == 1 || $status == 3) {
+                if (sendLeaveNotification($employeeEmails, $senderName, $fromDate, $toDate, $leaveType, $status)) {
+                    $response = array('status' => 'success', 'message' => 'Leave status updated and notifications sent successfully.');
+                } else {
+                    $response = array('status' => 'success', 'message' => 'Leave status updated, but failed to send notifications.');
+                }
+            } else {
+                $response = array('status' => 'success', 'message' => 'Leave status updated successfully.');
+            }
             echo json_encode($response);
             exit;
         } else {
@@ -168,21 +259,18 @@ if (isset($_POST['action']) && $_POST['action'] === 'apply-leave') {
     $sickFile = isset($_FILES['sick_file']) ? $_FILES['sick_file'] : null;
 
     $response = insertLeaveRequest($empId, $leaveTypeId, $startDate, $endDate, $numberDays, $remarks, $sickFile);
-    
-    echo json_encode($response);
 
+    echo json_encode($response);
 } else if (isset($_POST['action']) && $_POST['action'] === 'update-leave-status') {
     $id = $_POST['id'];
     $status = $_POST['status'];
 
     $response = updateStatus($id, $status);
     echo $response;
-
 } else if (isset($_POST['action']) && $_POST['action'] === 'delete-leave') {
-        $id = $_POST['id'];
-        $response = deleteLeave($id);
-        echo $response;
-
+    $id = $_POST['id'];
+    $response = deleteLeave($id);
+    echo $response;
 }
 ?>
 
@@ -202,7 +290,7 @@ $statusMap = [
     'Approved' => 1,
     'Cancelled' => 2,
     'Recalled' => 3,
-    'Rejected' => 4 
+    'Rejected' => 4
 ];
 
 // Initialize the leave status filter value
@@ -277,10 +365,7 @@ if (empty($leaveData)) {
 } else {
     foreach ($leaveData as $leave) {
         $imagePath = empty($leave['image_path']) ? '../files/assets/images/user-card/img-round1.jpg' : $leave['image_path'];
-        $leaveStatusText = ($leave['leave_status'] == 0) ? 'Pending' : 
-                           (($leave['leave_status'] == 1) ? 'Approved' : 
-                           (($leave['leave_status'] == 2) ? 'Cancelled' : 
-                           (($leave['leave_status'] == 3) ? 'Recalled' : 'Rejected')));
+        $leaveStatusText = ($leave['leave_status'] == 0) ? 'Pending' : (($leave['leave_status'] == 1) ? 'Approved' : (($leave['leave_status'] == 2) ? 'Cancelled' : (($leave['leave_status'] == 3) ? 'Recalled' : 'Rejected')));
         $leaveTypeName = isset($leaveTypes[$leave['leave_type_id']]) ? $leaveTypes[$leave['leave_type_id']] : 'Unknown';
 
         $badgeClass = '';
