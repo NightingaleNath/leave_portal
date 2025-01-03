@@ -3,25 +3,109 @@ date_default_timezone_set('Africa/Accra');
 session_start();
 include('../includes/config.php');
 
-function resizeImage($sourcePath, $destinationPath, $width, $height) {
-     if (!function_exists('imagecreatefromjpeg') || !function_exists('imagejpeg')) {
-        throw new Exception('GD library is not available');
+// ini_set('display_errors', 1);
+// ini_set('display_startup_errors', 1);
+// error_reporting(E_ALL);
+
+// header('Content-Type: application/json');
+// error_reporting(0);
+
+function handleImageUpload($file, $staff_id) {
+    // Get document root path
+    $document_root = $_SERVER['DOCUMENT_ROOT'];
+    $upload_dir = $document_root . '/leave_portal/uploads/images/';
+    
+    // Create directory if it doesn't exist
+    if (!file_exists($upload_dir)) {
+        if (!mkdir($upload_dir, 0777, true)) {
+            throw new RuntimeException('Failed to create upload directory');
+        }
+        chmod($upload_dir, 0777);
+    }
+
+    // Validate upload
+    if (!isset($file['error']) || is_array($file['error'])) {
+        throw new RuntimeException('Invalid upload parameters');
+    }
+
+    // Validate file type
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime_type = $finfo->file($file['tmp_name']);
+    $allowed_types = ['image/jpeg', 'image/png'];
+    
+    if (!in_array($mime_type, $allowed_types)) {
+        throw new RuntimeException('Invalid file type');
+    }
+
+    // Generate safe filename
+    $extension = ($mime_type === 'image/jpeg') ? 'jpg' : 'png';
+    $filename = sprintf('%s_%s.%s', 
+        str_replace(' ', '_', $staff_id),
+        bin2hex(random_bytes(8)),
+        $extension
+    );
+    
+    $filepath = $upload_dir . $filename;
+
+    // Move file
+    if (!copy($file['tmp_name'], $filepath)) {
+        error_log("Upload failed. Debug info:");
+        error_log("Source: " . $file['tmp_name']);
+        error_log("Destination: " . $filepath);
+        error_log("Upload dir permissions: " . substr(sprintf('%o', fileperms($upload_dir)), -4));
+        error_log("PHP process user: " . exec('whoami'));
+        throw new RuntimeException('Failed to move uploaded file');
+    }
+
+    chmod($filepath, 0644);
+    
+    return '/leave_portal/uploads/images/' . $filename;
+}
+
+function resizeImage($sourcePath, $maxWidth = 230, $maxHeight = 230) {
+    $document_root = $_SERVER['DOCUMENT_ROOT'];
+    $fullPath = $document_root . $sourcePath;
+    
+    if (!file_exists($fullPath)) {
+        throw new RuntimeException('Source image not found');
+    }
+
+    list($width, $height) = getimagesize($fullPath);
+    
+    // Calculate new dimensions
+    $ratio = min($maxWidth / $width, $maxHeight / $height);
+    $new_width = round($width * $ratio);
+    $new_height = round($height * $ratio);
+
+    $new_image = imagecreatetruecolor($new_width, $new_height);
+    
+    // Handle transparency for PNGs
+    imagesavealpha($new_image, true);
+    $transparent = imagecolorallocatealpha($new_image, 0, 0, 0, 127);
+    imagefill($new_image, 0, 0, $transparent);
+    
+    $source = (pathinfo($fullPath, PATHINFO_EXTENSION) === 'png') ? 
+        imagecreatefrompng($fullPath) : 
+        imagecreatefromjpeg($fullPath);
+        
+    imagecopyresampled(
+        $new_image, $source,
+        0, 0, 0, 0,
+        $new_width, $new_height,
+        $width, $height
+    );
+    
+    // Save resized image
+    if (pathinfo($fullPath, PATHINFO_EXTENSION) === 'png') {
+        imagepng($new_image, $fullPath);
+    } else {
+        imagejpeg($new_image, $fullPath, 90);
     }
     
-    list($originalWidth, $originalHeight) = getimagesize($sourcePath);
-    $src = imagecreatefromjpeg($sourcePath);
-    $dst = imagecreatetruecolor($width, $height);
-    
-    // Resize
-    imagecopyresampled($dst, $src, 0, 0, 0, 0, $width, $height, $originalWidth, $originalHeight);
-    
-    // Save the resized image
-    imagejpeg($dst, $destinationPath);
-    
-    // Free memory
-    imagedestroy($src);
-    imagedestroy($dst);
+    imagedestroy($new_image);
+    imagedestroy($source);
 }
+
 
 function updateStaffRecords($edit_id, $firstname, $lastname, $middlename, $contact, $designation, $department, $email, $password, $gender, $is_supervisor, $role, $staff_id, $image_path) {
     global $conn;
@@ -35,18 +119,11 @@ function updateStaffRecords($edit_id, $firstname, $lastname, $middlename, $conta
     // Check if the image file is provided
     if ($image_path !== null && isset($image_path['name']) && !empty($image_path['name'])) {
         // Upload the image
-        $image_upload_dir = '../uploads/images/';
-        $image_name = $staff_id . '_' . basename($image_path['name']);
-        $image_target_path = $image_upload_dir . $image_name;
 
-        if (!move_uploaded_file($image_path['tmp_name'], $image_target_path)) {
-            $response = array('status' => 'error', 'message' => 'Failed to upload the image');
-            echo json_encode($response);
-            exit;
-        }
+        $image_target_path = handleImageUpload($image_path, $staff_id);
 
          // Resize the image to 230x230
-        resizeImage($image_target_path, $image_target_path, 230, 230);
+        resizeImage($image_target_path);
 
         // If a new image is provided, remove the old image from the storage folder
         $old_image_path = ''; // Get the old image path from the database
@@ -129,18 +206,10 @@ function addStaffRecord($firstname, $lastname, $middlename, $contact, $designati
     }
 
     // Upload the image
-    $image_upload_dir = '../uploads/images/';
-    $image_name = $staff_id . '_' . basename($image_path['name']);
-    $image_target_path = $image_upload_dir . $image_name;
-
-    if (!move_uploaded_file($image_path['tmp_name'], $image_target_path)) {
-        $response = array('status' => 'error', 'message' => 'Failed to upload the image');
-        echo json_encode($response);
-        exit;
-    }
+   $image_target_path = handleImageUpload($image_path, $staff_id);
 
      // Resize the image to 230x230
-    resizeImage($image_target_path, $image_target_path, 230, 230);
+    resizeImage($image_target_path);
 
     // Insert the record into the database
     $password_param = md5($password);

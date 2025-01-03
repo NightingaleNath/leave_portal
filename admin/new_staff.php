@@ -560,12 +560,36 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                 }
                 formData.append('role', selectedRole);
 
-                // Handle the image field separately
                 var imageFile = $('#image_path')[0].files[0];
+
+                // Handle the image field separately
                 if (!imageFile) {
                     Swal.fire({
                         icon: 'warning',
                         text: 'Please select an image file',
+                        confirmButtonColor: '#ffc107',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+
+                // Validate image type
+                var allowedTypes = ['image/jpeg', 'image/png'];
+                if (!allowedTypes.includes(imageFile.type)) {
+                    Swal.fire({
+                        icon: 'warning',
+                        text: 'Invalid image type. Only JPEG and PNG are allowed.',
+                        confirmButtonColor: '#ffc107',
+                        confirmButtonText: 'OK'
+                    });
+                    return;
+                }
+
+                // Validate image size (max 5MB)
+                if (imageFile.size > 5 * 1024 * 1024) {
+                    Swal.fire({
+                        icon: 'warning',
+                        text: 'Image size exceeds 5MB.',
                         confirmButtonColor: '#ffc107',
                         confirmButtonText: 'OK'
                     });
@@ -584,31 +608,45 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                     contentType: false,
                     processData: false,
                     success:function(response){
-                        console.log('success function called');
-                        response = JSON.parse(response);
-                        console.log('RESPONSE HERE: ' + response.status)
-                        console.log(`RESPONSE HERE: ${response.message}`);
-                        if (response.status == 'success') {
-                            Swal.fire({
-                                icon: 'success',
-                                html: response.message,
-                                confirmButtonColor: '#01a9ac',
-                                confirmButtonText: 'OK'
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    location.reload();
-                                }
-                            });
-                        } else {
+                        try {
+                            if (typeof response === 'string') {
+                                response = JSON.parse(response);
+                            }
+                            if (response.status == 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    html: response.message,
+                                    confirmButtonColor: '#01a9ac',
+                                    confirmButtonText: 'OK'
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        location.reload();
+                                    }
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    text: response.message,
+                                    confirmButtonColor: '#eb3422',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        } catch (e) {
+                            console.error("Invalid JSON response:", response);
                             Swal.fire({
                                 icon: 'error',
-                                text: response.message,
-                                confirmButtonColor: '#eb3422',
+                                text: 'Unexpected server error. Please try again later.',
+                                confirmButtonColor: '#e74c3c',
                                 confirmButtonText: 'OK'
                             });
-                        }
+                    }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
+                        Swal.fire({
+                            icon: 'error',
+                            text: 'Failed to connect to the server.',
+                            confirmButtonColor: '#eb3422',
+                        });
                         console.log('AJAX Data HERE: ' + JSON.stringify(formData));
                         console.log("Response from server: " + jqXHR.responseText);
                         console.log("AJAX error: " + textStatus + ' : ' + errorThrown);

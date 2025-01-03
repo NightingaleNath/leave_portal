@@ -318,9 +318,11 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                         }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
+                        console.error("AJAX Error:", textStatus, errorThrown);
+                        console.log("Response Text:", jqXHR.responseText);
                         Swal.fire({
                             icon: 'error',
-                            text: jqXHR.responseText,
+                            text: 'Server error occurred. Please try again.',
                             confirmButtonColor: '#eb3422',
                             confirmButtonText: 'OK'
                         });
@@ -367,9 +369,11 @@ if ($userRole !== 'Manager' && $userRole !== 'Admin') {
                         }
                     },
                     error: function(jqXHR, textStatus, errorThrown) {
+                        console.error("AJAX Error:", textStatus, errorThrown);
+                        console.log("Response Text:", jqXHR.responseText);
                         Swal.fire({
                             icon: 'error',
-                            text: jqXHR.responseText,
+                            text: 'Server error occurred. Please try again.',
                             confirmButtonColor: '#eb3422',
                             confirmButtonText: 'OK'
                         });

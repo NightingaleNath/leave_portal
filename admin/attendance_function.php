@@ -6,6 +6,11 @@ include('../includes/config.php');
 function clockIn($staff_id) {
     global $conn;
 
+    error_log("Clock in attempt for staff_id: " . $staff_id);
+    
+    // Debug session
+    error_log("Session staff_id: " . (isset($_SESSION['sstaff_id']) ? $_SESSION['sstaff_id'] : 'not set'));
+
     if ($staff_id !== $_SESSION['sstaff_id']) {
         $response = array('status' => 'error', 'message' => 'Staff ID does not match session ID');
         echo json_encode($response);
@@ -17,6 +22,11 @@ function clockIn($staff_id) {
 
      // Check if staff_id exists in tblemployees
     $stmt = mysqli_prepare($conn, "SELECT * FROM tblemployees WHERE staff_id = ?");
+    if (!$stmt) {
+        $response = array('status' => 'error', 'message' => 'Query preparation failed: ' . mysqli_error($conn));
+        echo json_encode($response);
+        exit;
+    }
     mysqli_stmt_bind_param($stmt, 's', $staff_id);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
@@ -58,6 +68,11 @@ function clockIn($staff_id) {
 function clockOut($staff_id) {
     global $conn;
 
+    error_log("Clock in attempt for staff_id: " . $staff_id);
+    
+    // Debug session
+    error_log("Session staff_id: " . (isset($_SESSION['sstaff_id']) ? $_SESSION['sstaff_id'] : 'not set'));
+
     if ($staff_id !== $_SESSION['sstaff_id']) {
         $response = array('status' => 'error', 'message' => 'Staff ID does not match session ID');
         echo json_encode($response);
@@ -69,6 +84,11 @@ function clockOut($staff_id) {
 
      // Check if staff_id exists in tblemployees
     $stmt = mysqli_prepare($conn, "SELECT * FROM tblemployees WHERE staff_id = ?");
+    if (!$stmt) {
+        $response = array('status' => 'error', 'message' => 'Query preparation failed: ' . mysqli_error($conn));
+        echo json_encode($response);
+        exit;
+    }
     mysqli_stmt_bind_param($stmt, 's', $staff_id);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
