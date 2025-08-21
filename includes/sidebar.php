@@ -161,48 +161,7 @@
                         <?php endif; ?>
                     </ul>
                 </li>
-                <li class="pcoded-hasmenu <?php echo ($page_name == 'task' || $page_name == 'new_task' || $page_name == 'my_task_list') ? 'active pcoded-trigger' : ''; ?>">
-                    <a href="javascript:void(0)">
-                        <span class="pcoded-micon"><i class="feather icon-users"></i></span>
-                        <span class="pcoded-mtext">Task Manager</span>
-                    </a>
-                    <ul class="pcoded-submenu">
-                        <?php if ($session_role == 'Staff' && $session_supervisor == '1') : ?>
-                         <li class="<?php echo ($page_name == 'new_task') ? 'active' : ''; ?>">
-                            <a href="new_task.php">
-                                <span class="pcoded-mtext">New Task</span>
-                            </a>
-                        </li>
-                        <?php endif; ?>
-                        <li class="<?php echo ($page_name == 'my_task_list') ? 'active' : ''; ?>">
-                            <a href="my_task_list.php">
-                                <span class="pcoded-mtext">My Task</span>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="<?php echo ($page_name == 'my_attendance') ? 'active' : ''; ?>">
-                    <a href="my_attendance.php">
-                        <span class="pcoded-micon"><i class="feather icon-clock"></i></span>
-                        <span class="pcoded-mtext">My Attendance</span>
-                    </a>
-                </li>
             </ul>
         <?php endif; ?>    
-        <div class="pcoded-navigatio-lavel">Support</div>
-        <ul class="pcoded-item pcoded-left-item">
-            <li class="">
-                <a href="https://codelytical.netlify.app/" target="_blank">
-                    <span class="pcoded-micon"><i class="feather icon-monitor"></i></span>
-                    <span class="pcoded-mtext">Portfolio</span>
-                </a>
-            </li>
-            <li class="">
-                <a href="https://www.youtube.com/@codelytical" target="_blank">
-                    <span class="pcoded-micon"><i class="feather icon-monitor"></i></span>
-                    <span class="pcoded-mtext">CodeLytical</span>
-                </a>
-            </li>
-        </ul>
-    </div>
+
 </nav>

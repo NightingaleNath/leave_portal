@@ -12,7 +12,7 @@
     <meta name="author" content="#">
     <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
     <!-- Favicon icon -->
-    <link rel="icon" href=".\files\assets\images\favicon.ico" type="image/x-icon">
+    <link rel="icon" href=".\files\assets\images\FijiTV_Logo.png" type="image/x-icon">
     <!-- Google font--><link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,800" rel="stylesheet">
     <!-- Required Fremwork -->
     <link rel="stylesheet" type="text/css" href=".\files\bower_components\bootstrap\css\bootstrap.min.css">
@@ -49,8 +49,12 @@ session_destroy();
     <!-- Pre-loader end -->
 
     <section class="login-block">
+
         <!-- Container-fluid starts -->
         <div class="container">
+            <div class="text-center w-100 mb-4" style="width:100%; margin-bottom:20px;">
+            <img src="./files/assets/images/FijiTV_Logo.png" alt="Leave Portal Logo" class="img-fluid" style="max-width: 600px;">
+        </div>
             <div class="row">
                 <div class="col-sm-12">
                     <!-- Authentication card start -->
@@ -60,7 +64,7 @@ session_destroy();
                                 <div class="card-block">
                                     <div class="row m-b-20">
                                         <div class="col-md-12">
-                                            <h3 class="text-center">Leave Management Portal</h3>
+                                            <h3 class="text-center">Leave Management Portal test</h3>
                                         </div>
                                     </div>
                                     <div class="form-group form-primary">
